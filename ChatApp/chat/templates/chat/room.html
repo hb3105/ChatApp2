@@ -1,12 +1,12 @@
 <!-- chat/templates/chat/room.html -->
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8"/>
-    <title>Chat Room</title>
-</head>
-<body>
-    <center><h1>Hello , Welcome to my chat site ! {{request.user}}</h1></center>
+
+{% extends 'base.html' %}
+
+{% block title %}Chat Room - {{ room_name }}{% endblock %}
+
+{% block content %}
+    <h5>Room: {{room_name|capfirst}}</h5>
+    <h5>User: {{request.user|capfirst}}</h5>
     <br>
     <textarea id="chat-log" cols="100" rows="20"></textarea><br>
     <input id="chat-message-input" type="text" size="100"><br>
@@ -43,10 +43,9 @@
             const messageInputDom = document.querySelector('#chat-message-input');
             var messageInput = messageInputDom.value;
             chatSocket.send(JSON.stringify({
-                message: messageInput, username : '{{request.user.username}}' 
+                message: messageInput, username : '{{request.user.username|capfirst}}' 
             }));
             messageInputDom.value = '';
         };
     </script>
-</body>
-</html>
+{% endblock %}

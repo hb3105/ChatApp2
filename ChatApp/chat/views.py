@@ -3,6 +3,7 @@ from .models import Room
 
 def index(request):
     rooms = Room.objects.all()  # Fetch all rooms from the database
+    print("Index view accessed")  # Add this line
     return render(request, "chat/index.html", {"rooms": rooms})
 
 def room(request, room_name):
