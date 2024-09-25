@@ -20,3 +20,8 @@ def register(request):
             user = form.save()
             login(request, user)
             return redirect(reverse("users:dashboard"))
+        else:
+            return render(
+            request, "users/register.html",
+            {"form": CustomUserCreationForm}
+        )

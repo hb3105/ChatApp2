@@ -6,7 +6,7 @@ Hello, {{ user.username|capfirst|default:'Guest' }}!
 <div>
     {% if user.is_authenticated %}
         <br>
-        <a href="{% url 'chat:index' %}">Chatroom</a> <br><br>
+        <a href="{% url 'chat:index' %}">Chatrooms</a> <br><br>
         <a href="{% url 'users:password_change' %}">Change password</a> <br><br>
         <a href="#" onclick="logout()">Logout</a>
     {% else %}

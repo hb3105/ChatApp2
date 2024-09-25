@@ -27,9 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
-
 INSTALLED_APPS = [
     'daphne',
     'chat',
@@ -105,15 +103,10 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
@@ -131,14 +124,9 @@ CHANNEL_LAYERS = {
     }
 }
 
-# awesome_website/settings.py
+LOGIN_REDIRECT_URL = 'users:dashboard'
+LOGOUT_REDIRECT_URL = 'users:dashboard'
 
-LOGIN_REDIRECT_URL = "users:dashboard"
-# awesome_website/settings.py
-
-LOGOUT_REDIRECT_URL = "users:dashboard"
-
-# awesome_website/settings.py
-
+# ChatApp/settings.py
 EMAIL_HOST = "localhost"
 EMAIL_PORT = 1025

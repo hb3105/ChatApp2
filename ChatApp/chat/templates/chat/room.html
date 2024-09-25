@@ -11,12 +11,14 @@
     <h5>Username: {{request.user|capfirst}}</h5>
     <br>
 
-    <textarea id="chat-log" cols="100" rows="20"></textarea><br>
+    <textarea id="chat-log" cols="100" rows="20" readonly></textarea><br>
     <div class="chat-input-container">
         <input id="chat-message-input" type="text" size="95">
         <input id="chat-message-submit" type="button" value="Send">
     </div>
+    
     {{ room_name|json_script:"room-name" }}
+
     <a href="#" onclick="logout()">Logout</a>
     {% else %}
         <h5>You can access this page only if you are logged in.</h5>
@@ -53,7 +55,7 @@
         document.querySelector('#chat-message-submit').onclick = function(e) {
         const messageInputDom = document.querySelector('#chat-message-input');   
 
-        var messageInput = messageInputDom.value.trim();  // remove leading whitespaces
+        var messageInput = messageInputDom.value.trim();  // remove leading or trailing whitespaces
         if (messageInput) {  // Only send message if there's valid input
             chatSocket.send(JSON.stringify({
             message: messageInput,

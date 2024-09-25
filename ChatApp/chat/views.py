@@ -7,6 +7,7 @@ def index(request):
     return render(request, "chat/index.html", {"rooms": rooms})
 
 def room(request, room_name):
+    room_name = room_name.capitalize()    
     try:
         room = Room.objects.get(name=room_name)  # Try to get the existing room
         return render(request, "chat/room.html", {"room_name": room_name})
