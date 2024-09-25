@@ -11,8 +11,8 @@
     <input type="submit" value="Login">
 </form>
 
-<a href="{% url 'dashboard' %}">Dashboard</a>
-<a href="{% url 'password_reset' %}">Reset password</a>
-<a href="{% url 'register' %}">Register</a>
+<a href="{% url 'users:dashboard' %}">Dashboard</a>
+<a href="{% url 'users:password_reset' %}">Reset password</a>
+<a href="{% url 'users:register' %}">Register</a>
 
 {% endblock %}

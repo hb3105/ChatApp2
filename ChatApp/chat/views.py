@@ -7,5 +7,10 @@ def index(request):
     return render(request, "chat/index.html", {"rooms": rooms})
 
 def room(request, room_name):
-    room, created = Room.objects.get_or_create(name=room_name)  # Create room if it doesn't exist
-    return render(request, "chat/room.html", {"room_name": room_name})
+    try:
+        room = Room.objects.get(name=room_name)  # Try to get the existing room
+        return render(request, "chat/room.html", {"room_name": room_name})
+    except Room.DoesNotExist:
+        # Room doesn't exist, create a new one
+        room = Room.objects.create(name=room_name)
+        return render(request, "chat/room.html", {"room_name": room_name})

@@ -133,10 +133,10 @@ CHANNEL_LAYERS = {
 
 # awesome_website/settings.py
 
-LOGIN_REDIRECT_URL = "dashboard"
+LOGIN_REDIRECT_URL = "users:dashboard"
 # awesome_website/settings.py
 
-LOGOUT_REDIRECT_URL = "dashboard"
+LOGOUT_REDIRECT_URL = "users:dashboard"
 
 # awesome_website/settings.py
 
