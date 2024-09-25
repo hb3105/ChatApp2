@@ -16,11 +16,7 @@
         <h5>Create a new Chat Room</h5>
         <input id="room-name-input" type="text" size="100"><br>
         <input id="room-name-submit" type="button" value="Enter" disabled> <br>
-
-        <form action="{% url 'users:logout' %}" method="post">
-            {% csrf_token %}
-            <button type="submit">Logout</button>
-        </form>    
+        <a href="#" onclick="logout()">Logout</a>
     {% else %}
         <h5>You can access this page only if you are logged in.</h5>
         <a href="{% url 'users:dashboard' %}">Dashboard</a>
@@ -50,5 +46,29 @@
                 window.location.pathname = '/chat/' + roomName + '/';
             }
         };
+    </script>
+
+    <script>
+        function logout() {
+            // Create a form element
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{% url "users:logout" %}';
+        
+            // Create a hidden input field for the CSRF token
+            var csrfTokenInput = document.createElement('input');
+            csrfTokenInput.type = 'hidden';
+            csrfTokenInput.name = 'csrfmiddlewaretoken';
+            csrfTokenInput.value = '{{ csrf_token }}';
+        
+            // Append the CSRF token input to the form
+            form.appendChild(csrfTokenInput);
+        
+            // Append the form to the document body
+            document.body.appendChild(form);
+        
+            // Submit the form
+            form.submit();
+        }
     </script>
 {% endblock %}
