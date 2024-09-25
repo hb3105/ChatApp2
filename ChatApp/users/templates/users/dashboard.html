@@ -1,6 +1,7 @@
 <!--users/templates/users/dashboard.html-->
 {% extends 'base.html' %}
 {% block content %}
+<br>
 Hello, {{ user.username|capfirst|default:'Guest' }}!
 
 <div>
@@ -10,10 +11,9 @@ Hello, {{ user.username|capfirst|default:'Guest' }}!
         <a href="{% url 'users:password_change' %}">Change password</a> <br><br>
         <form action="{% url 'users:logout' %}" method="post">
             {% csrf_token %}
-            <button type="submit">Logout</button>
+            <input type="submit" value="Logout">
         </form>
     {% else %}
-        <br>
         <a href="{% url 'users:login' %}">Login</a>
     {% endif %}
 </div>
