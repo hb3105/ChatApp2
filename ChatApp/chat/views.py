@@ -26,3 +26,11 @@ def room(request):
     else:
         messages.error(request, "Room name is required.")
         return redirect('chat:index')
+
+def handle_unknown_url(request, any_path):
+    if any_path == "dashboard":
+        # Handle the dashboard URL specifically
+        return redirect('users:dashboard')
+    else:
+        # Handle other unmatched URLs
+        return redirect('chat:index')  # Redirect to index
