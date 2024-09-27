@@ -1,6 +1,7 @@
 # users/views.py
 
 from django.contrib.auth import login
+from django.contrib.auth.models import User
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from users.forms import CustomUserCreationForm
@@ -25,3 +26,13 @@ def register(request):
             request, "users/register.html",
             {"form": CustomUserCreationForm}
         )
+
+def search_users(request):
+    query = request.GET.get('query')
+    if query:
+        # Filter users based on username (case-insensitive) excluding the logged-in user
+        users = User.objects.filter(username__icontains=query).exclude(username=request.user.username)
+    else:
+        users = []  # Empty list if no query
+    context = {'users': users, 'query': query}
+    return render(request, 'users/search_users.html', context)

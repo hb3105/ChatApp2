@@ -38,7 +38,20 @@
 
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
-            document.querySelector('#chat-log').value += `${data.username}: ${data.message}\n`;
+    
+            // This should handle messages from other users
+            const { username = "Unknown User", message = "No message", timestamp = "Unknown time" } = data;
+            
+            // Check if messages are present
+            if (data.messages) {
+                data.messages.forEach(msg => {
+                    const { username, message, timestamp } = msg;
+                    document.querySelector('#chat-log').value += `${timestamp} ${username}: ${message}\n`;
+                });
+            } else {
+                const { username = "Unknown User", message = "No message", timestamp = "Unknown time" } = data;
+                document.querySelector('#chat-log').value += `${timestamp} ${username}: ${message}\n`;
+            }
         };
 
         chatSocket.onclose = function(e) {
