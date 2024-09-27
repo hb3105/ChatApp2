@@ -8,5 +8,5 @@ app_name = 'chat'
 urlpatterns = [
     path("", views.index, name="home"),
     path("index/", views.index, name="index"),
-    path("<str:room_name>/", views.room, name="room"),
+    path("room/", views.room, name="room"),  # Remove the room_name parameter
 ]
