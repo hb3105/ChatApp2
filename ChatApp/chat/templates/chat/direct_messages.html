@@ -11,7 +11,7 @@
 
 <div id="messages-log" style="height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px;">
     {% for msg in messages %}
-        <p><strong>{{ msg.sender.username }}:</strong> {{ msg.message }} <em>{{ msg.timestamp }}</em></p>
+    {{ msg.timestamp }} {{ msg.sender.username }}: {{ msg.message }}<br>
     {% endfor %}
 </div>
 
@@ -54,7 +54,7 @@
         
         // Append the message to the messages log
         const messagesLog = document.querySelector('#messages-log');
-        messagesLog.innerHTML += `<p><strong>${sender}:</strong> ${message} <em>${new Date().toLocaleString()}</em></p>`;
+        messagesLog.innerHTML += `${new Date().toLocaleString()} ${sender}: ${message}<br>`;
         
         // Scroll to the bottom of the div
         messagesLog.scrollTop = messagesLog.scrollHeight;

@@ -1,117 +1,3 @@
-Updating the file.
-
-I have created a "ChatApp" django project containing two apps "chat" and "users".
-The current features include user registration, creating chat rooms and users chatting in the chat rooms.
-I now want to extend realtime and offline direct/private messaging rbetween users in the app. Please help me with the necessary code.
-
-Here is ChatApp urls.you
-from django.contrib import admin
-from django.urls import path, include
-
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path("", include("users.urls",namespace='users')),
-    path("chat/", include("chat.urls", namespace='chat')),
-]
-
-"chat" app urls.py
-# chat/urls.py
-from django.urls import path
-
-from . import views
-
-app_name = 'chat'
-
-urlpatterns = [
-    path("", views.index, name="home"),
-    path("index/", views.index, name="index"),
-    path("index/<str:any_path>", views.handle_unknown_url, name="catch-all-index"),
-    path("room/", views.room, name="room"),  # Remove the room_name parameter
-    # Optional catch-all
-    path("<str:any_path>", views.handle_unknown_url, name="catch-all"),  
-]
-
-"users" app urls.py
-# users/urls.py
-
-from django.contrib import admin
-from . import views
-from django.urls import path, include, re_path
-
-app_name = 'users'
-
-urlpatterns = [
-    path("", views.dashboard, name="home"), #empty path https:/127.0.0.1:8000
-    path("accounts/", include("django.contrib.auth.urls")),
-    path("dashboard/", views.dashboard, name="dashboard"),
-    path("register/", views.register, name="register"),
-    path('search/', views.search_users, name='search_users'),
-]
-
-{% extends 'base.html' %}
-
-{% block content %}
-<h2>Search Users</h2>
-
-<form method="get">
-  <label for="query">Search by username:</label>
-  <input type="text" name="query" id="query" value="{{ query }}">
-  <input type="submit" value="Search">
-</form>
-
-{% if users %}
-  <h3>Search Results</h3>
-  <ul>
-    {% for user in users %}
-      <li>
-        <a href="#">{{ user.username }}</a> (Send message)
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>No users found for your search.</p>
-{% endif %}
-<a href="{% url 'users:dashboard' %}">Dashboard</a>
-
-{% endblock %}
-
-from django.shortcuts import render, redirect
-from .models import Room
-from django.http import JsonResponse
-from django.contrib import messages
-
-def index(request):
-    rooms = Room.objects.all()  # Fetch all rooms from the database
-    if request.method == 'POST':
-        room_name = request.POST.get('room_name', '').capitalize()
-        if room_name:
-            # Create the room if it doesn't exist
-            Room.objects.get_or_create(name=room_name)
-            return redirect('chat:room', room_name=room_name)  # Redirect to the created room
-    return render(request, "chat/index.html", {"rooms": rooms})
-
-
-def room(request):
-    room_name = request.GET.get('room_name')
-    if room_name:
-        try:
-            room = Room.objects.get(name=room_name)
-            return render(request, "chat/room.html", {"room_name": room_name})
-        except Room.DoesNotExist:
-            messages.error(request, f"Room '{room_name}' does not exist.")
-            return redirect('chat:index')
-    else:
-        messages.error(request, "Room name is required.")
-        return redirect('chat:index')
-
-def handle_unknown_url(request, any_path):
-    if any_path == "dashboard":
-        # Handle the dashboard URL specifically
-        return redirect('users:dashboard')
-    else:
-        # Handle other unmatched URLs
-        return redirect('chat:index')  # Redirect to index
-
 # chat/models.py
 from django.db import models
 from django.contrib.auth.models import User
@@ -139,95 +25,76 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.username}: {self.message[:20]} at {self.timestamp}"
+    
+class DirectMessage(models.Model):
+    sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)
+    receiver = models.ForeignKey(User, related_name='received_messages', on_delete=models.CASCADE)
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
 
-# chat/consumers.py
-import json
+    def __str__(self):
+        return f"From {self.sender.username} to {self.receiver.username}: {self.message[:20]} at {self.timestamp}"
 
-from channels.generic.websocket import AsyncWebsocketConsumer
-from channels.db import database_sync_to_async
-from django.utils import timezone
-from .models import Room, Message
 
-class ChatConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
-        self.room_group_name = f"chat_{self.room_name}"
+from django.shortcuts import render, redirect
+from .models import Room, DirectMessage
+from django.http import JsonResponse
+from django.contrib import messages
+from django.contrib.auth.models import User
+from django.db.models import Q
+from django.urls import reverse
 
-        # Join room group
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+def index(request):
+    rooms = Room.objects.all()
+    if request.method == 'POST':
+        room_name = request.POST.get('room_name', '').capitalize()
+        if room_name:
+            Room.objects.get_or_create(name=room_name)
+            # Manually append room_name as a query parameter
+            room_url = reverse('chat:room') + f'?room_name={room_name}'
+            return redirect(room_url)
+    return render(request, "chat/index.html", {"rooms": rooms})
 
-        await self.accept()
-
-        # Load messages from the database
-        messages = await self.get_messages(self.room_name)
-
-        # Send all messages to the newly connected client
-        await self.send(text_data=json.dumps({"messages": messages}))
-
-    async def disconnect(self, close_code):
-        # Leave room group
-        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
-
-    # Receive message from WebSocket
-    async def receive(self, text_data):
+def room(request):
+    room_name = request.GET.get('room_name')
+    if room_name:
         try:
-            text_data_json = json.loads(text_data)
-            message = text_data_json.get("message")
-            username = text_data_json.get("username")
+            room = Room.objects.get(name=room_name)
+            return render(request, "chat/room.html", {"room_name": room_name})
+        except Room.DoesNotExist:
+            messages.error(request, f"Room '{room_name}' does not exist.")
+            return redirect('chat:index')
+    else:
+        messages.error(request, "Room name is required.")
+        return redirect('chat:index')
 
-            # Check if message and username are present
-            if not message or not username:
-                raise ValueError("Message or username is missing")
+def handle_unknown_url(request, any_path):
+    if any_path == "dashboard":
+        # Handle the dashboard URL specifically
+        return redirect('users:dashboard')
+    else:
+        # Handle other unmatched URLs
+        return redirect('chat:index')  # Redirect to index
+    
+def direct_messages(request):
+    if request.user.is_authenticated:
+        receiver_username = request.GET.get('receiver')
+        receiver = User.objects.filter(username=receiver_username).first() if receiver_username else None
+        
+        users = User.objects.exclude(id=request.user.id)  # Exclude the logged-in user
+        messages = DirectMessage.objects.filter(
+            Q(sender=request.user, receiver=receiver) | Q(receiver=request.user, sender=receiver)
+        ).order_by('-timestamp') if receiver else []
 
-            print(f"Received message: {message} from {username}")
+        return render(request, "chat/direct_messages.html", {
+            "messages": messages,
+            "users": users,
+            "current_receiver": receiver
+        })
+    else:
+        return redirect('users:login')
 
-            # Save message to the database
-            await self.save_message(self.room_name, username, message)
-
-            # Send message to room group
-            await self.channel_layer.group_send(
-                self.room_group_name, {
-                    "type": "chat_message",
-                    "message": message,
-                    "username": username,
-                }
-            )
-        except Exception as e:
-            print(f"Error in receive: {e}")
-
-    # Receive message from room group
-    async def chat_message(self, event):
-        print(f"Broadcasting message: {event['message']} from {event['username']}")
-        message = event["message"]
-        username = event["username"]
-        timestamp = timezone.localtime(timezone.now()).strftime("%b %d, %Y %H:%M")
-        print("timezone is: ", timezone.now())
-
-        # Send message with timestamp to all clients in the group
-        await self.send(text_data=json.dumps({
-            "message": message,
-            "username": username,
-            "timestamp": timestamp
-        }))
-
-    @database_sync_to_async
-    def get_messages(self, room_name):
-        messages = Message.objects.filter(room__name=room_name).order_by('timestamp').values('username', 'message', 'timestamp')
-        # Format messages to a serializable structure
-        return [
-            {
-                "username": msg['username'],
-                "message": msg['message'],
-                "timestamp": msg['timestamp'].strftime("%b %d, %Y %H:%M")
-            } for msg in messages
-        ]
-
-    @database_sync_to_async
-    def save_message(self, room_name, username, message):
-        room = Room.objects.get(name=room_name)
-        Message.objects.create(room=room, username=username, message=message)
-
-    <!-- chat/templates/chat/room.html -->
+<!-- chat/templates/chat/room.html -->
 
 {% extends 'base.html' %}
 
@@ -337,87 +204,225 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 {% extends 'base.html' %}
 
-{% block title %}Chat Rooms{% endblock %}
-
 {% block content %}
-    {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+<h2>Direct Messages</h2>
 
-    {% if user.is_authenticated %}
-        <h5>Chat Rooms</h5>
-        <ul id="room-list">
-            {% for room in rooms %}
-                <li><a href="{% url 'chat:room' %}?room_name={{ room.name }}">{{ room.name }}</a></li>
-            {% empty %}
-                <li>No rooms available.</li>
-            {% endfor %}
-        </ul>
+{% if current_receiver %}
+    <h3>Chatting with: {{ current_receiver.username }}</h3>
+{% else %}
+    <h3>Select a user to chat with.</h3>
+{% endif %}
 
-        <h5>Create a new Chat Room</h5>
-        <form id="create-room-form" method="POST">
-            {% csrf_token %}
-            <input id="room-name-input" name="room_name" type="text" size="50" required><br>
-            <input id="room-name-submit" type="submit" value="Enter"> <br>
-        </form>
-        <a href="#" onclick="logout()">Logout</a>&nbsp;
+<div id="messages-log" style="height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px;">
+    {% for msg in messages %}
+        {{ msg.timestamp }}: {{ msg.sender.username }}: {{ msg.message }}<br>
+    {% endfor %}
+</div>
 
-    {% else %}
-        <h5>You can access this page only if you are logged in.</h5>
-    {% endif %}
-    <a href="{% url 'users:dashboard' %}">Dashboard</a>
+<input id="message-input" type="text" placeholder="Type your message...">
+<button id="send-message" disabled>Send</button>
 
-    <script>
-        const roomInput = document.querySelector('#room-name-input');
-        const submitButton = document.querySelector('#room-name-submit');
+<script>
+    let currentReceiver = '{{ current_receiver.username }}';
 
-        roomInput.focus();
+    // Function to check input and enable/disable send button
+    function toggleSendButton() {
+        const messageInput = document.querySelector('#message-input');
+        const sendButton = document.querySelector('#send-message');
+        sendButton.disabled = messageInput.value.trim() === '';
+    }
 
-        roomInput.oninput = function() {
-            const roomName = roomInput.value.trim();
-            submitButton.disabled = roomName === '';
-        };
+    // Event listener for input changes
+    document.querySelector('#message-input').addEventListener('input', toggleSendButton);
 
-        roomInput.onkeyup = function(e) {
-            if (e.keyCode === 13 && !submitButton.disabled) {  // enter, return
-                submitButton.click();
-            }
-        };
-
-        submitButton.onclick = function() {
-            const roomName = roomInput.value.trim();
-            console.log('Redirecting to room:', roomName);
-            if (roomName) {
-                window.location.pathname = '/chat/' + roomName + '/';
-            }
-        };
-    </script>
-
-    <script>
-        function logout() {
-            // Create a form element
-            var form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{% url "users:logout" %}';
-        
-            // Create a hidden input field for the CSRF token
-            var csrfTokenInput = document.createElement('input');
-            csrfTokenInput.type = 'hidden';
-            csrfTokenInput.name = 'csrfmiddlewaretoken';
-            csrfTokenInput.value = '{{ csrf_token }}';
-        
-            // Append the CSRF token input to the form
-            form.appendChild(csrfTokenInput);
-        
-            // Append the form to the document body
-            document.body.appendChild(form);
-        
-            // Submit the form
-            form.submit();
+    document.querySelector('#send-message').onclick = function(e) {
+        const message = document.querySelector('#message-input').value.trim();
+        if (message && currentReceiver) {
+            chatSocket.send(JSON.stringify({
+                'message': message,
+                'receiver': currentReceiver
+            }));
+            document.querySelector('#message-input').value = '';
+            toggleSendButton(); // Disable the button after sending
         }
-    </script>
+    };
+
+    // WebSocket connection
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/direct_messages/'
+    );
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const { message, sender } = data;
+        
+        // Append the message to the messages log
+        const messagesLog = document.querySelector('#messages-log');
+        messagesLog.innerHTML += `<p><strong>${sender}:</strong> ${message} <em>${new Date().toLocaleString()}</em></p>`;
+        
+        // Scroll to the bottom of the div
+        messagesLog.scrollTop = messagesLog.scrollHeight;
+    };
+
+    chatSocket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+</script>
+
 {% endblock %}
+
+# chat/consumers.py
+import json
+
+from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
+from django.utils import timezone
+from .models import Room, Message, DirectMessage
+from django.contrib.auth.models import User
+
+class ChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
+        self.room_group_name = f"chat_{self.room_name}"
+
+        # Join room group
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+
+        await self.accept()
+
+        # Load messages from the database
+        messages = await self.get_messages(self.room_name)
+
+        # Send all messages to the newly connected client
+        await self.send(text_data=json.dumps({"messages": messages}))
+
+    async def disconnect(self, close_code):
+        # Leave room group
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+    # Receive message from WebSocket
+    async def receive(self, text_data):
+        try:
+            text_data_json = json.loads(text_data)
+            message = text_data_json.get("message")
+            username = text_data_json.get("username")
+            
+            # Check if message and username are present
+            if not message or not username:
+                raise ValueError("Message or username is missing")
+
+            print(f"Received message: {message} from {username}")
+
+            # Save message to the database
+            await self.save_message(self.room_name, username, message)
+
+            # Send message to room group
+            await self.channel_layer.group_send(
+                self.room_group_name, {
+                    "type": "chat_message",
+                    "message": message,
+                    "username": username,
+                }
+            )
+        except Exception as e:
+            print(f"Error in receive: {e}")
+
+    # Receive message from room group
+    async def chat_message(self, event):
+        print(f"Broadcasting message: {event['message']} from {event['username']}")
+        message = event["message"]
+        username = event["username"]
+        timestamp = timezone.localtime(timezone.now()).strftime("%b %d, %Y %H:%M")
+        print("timezone is: ", timezone.now())
+
+        # Send message with timestamp to all clients in the group
+        await self.send(text_data=json.dumps({
+            "message": message,
+            "username": username,
+            "timestamp": timestamp
+        }))
+
+    @database_sync_to_async
+    def get_messages(self, room_name):
+        messages = Message.objects.filter(room__name=room_name).order_by('timestamp').values('username', 'message', 'timestamp')
+        # Format messages to a serializable structure
+        return [
+            {
+                "username": msg['username'],
+                "message": msg['message'],
+                "timestamp": msg['timestamp'].strftime("%b %d, %Y %H:%M")
+            } for msg in messages
+        ]
+
+    @database_sync_to_async
+    def save_message(self, room_name, username, message):
+        room = Room.objects.get(name=room_name)
+        Message.objects.create(room=room, username=username, message=message)
+
+class DirectMessageConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user = self.scope['user']
+        self.room_group_name = f'direct_messages_{self.user.username}'
+
+        # Join the group for the logged-in user
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        print('joining the direct message room: ', self.room_group_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+    async def receive(self, text_data):
+        text_data_json = json.loads(text_data)
+        message = text_data_json['message']
+        receiver_username = text_data_json['receiver']
+        print(f"Received message: {message} from {self.user.username} to {receiver_username}")
+
+        # Save the message to the database
+        receiver = await self.get_user(receiver_username)
+        if receiver:
+            await self.save_direct_message(self.user, receiver, message)
+
+            # Send the message to the receiver's group
+            await self.channel_layer.group_send(
+                f'direct_messages_{receiver.username}',
+                {
+                    'type': 'send_direct_message',
+                    'message': message,
+                    'sender': self.user.username,
+                }
+            )
+
+            # Send the message to the sender's group as well
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'send_direct_message',
+                    'message': message,
+                    'sender': self.user.username,
+                }
+            )
+
+    async def send_direct_message(self, event):
+        print(f"Broadcasting message: {event['message']} from {event['sender']}")
+        message = event['message']
+        sender = event['sender']
+
+        await self.send(text_data=json.dumps({
+            'message': message,
+            'sender': sender,
+        }))
+
+    @database_sync_to_async
+    def get_user(self, username):
+        return User.objects.filter(username=username).first()
+
+    @database_sync_to_async
+    def save_direct_message(self, sender, receiver, message):
+        DirectMessage.objects.create(sender=sender, receiver=receiver, message=message)
+
+
+
+I have room view where multiple users can chat with each other. All the message in the room are stored in the database and are loaded when users go to a particular room retaining all the chat history. 
+Similarly I have a directmessage model where one user can talk with another user. The above code is working only if both users are online and communicate with each other. I need to ensure all the messages between the two users are fetched correctly and displayed in the directmessage view so that both offline and online messaging can happen. 
+Please make the methods smilar to that of room to get this implemented.
