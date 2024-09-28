@@ -60,8 +60,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = event["message"]
         username = event["username"]
         timestamp = timezone.localtime(timezone.now()).strftime("%b %d, %Y %H:%M")
-        print("timezone is: ", timezone.now())
-
+        
         # Send message with timestamp to all clients in the group
         await self.send(text_data=json.dumps({
             "message": message,
@@ -131,13 +130,14 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
             )
 
     async def send_direct_message(self, event):
-        print(f"Broadcasting message: {event['message']} from {event['sender']}")
         message = event['message']
         sender = event['sender']
+        timestamp = timezone.localtime(timezone.now()).strftime("%b %d, %Y %H:%M")
 
         await self.send(text_data=json.dumps({
             'message': message,
             'sender': sender,
+            'timestamp': timestamp
         }))
 
     @database_sync_to_async

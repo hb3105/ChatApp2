@@ -46,7 +46,7 @@ def direct_messages(request):
         users = User.objects.exclude(id=request.user.id)  # Exclude the logged-in user
         messages = DirectMessage.objects.filter(
             Q(sender=request.user, receiver=receiver) | Q(receiver=request.user, sender=receiver)
-        ).order_by('-timestamp') if receiver else []
+        ).order_by('timestamp') if receiver else []
 
         return render(request, "chat/direct_messages.html", {
             "messages": messages,

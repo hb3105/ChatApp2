@@ -43,6 +43,12 @@
         }
     };
 
+    document.querySelector('#message-input').onkeyup = function(e) {
+        if (e.keyCode === 13) {  // Enter key press
+            document.querySelector('#send-message').click();
+        }
+    };
+
     // WebSocket connection
     const chatSocket = new WebSocket(
         'ws://' + window.location.host + '/ws/direct_messages/'
@@ -50,11 +56,11 @@
 
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        const { message, sender } = data;
+        const { message, sender, timestamp } = data;
         
         // Append the message to the messages log
         const messagesLog = document.querySelector('#messages-log');
-        messagesLog.innerHTML += `${new Date().toLocaleString()} ${sender}: ${message}<br>`;
+        messagesLog.innerHTML += `${timestamp} ${sender}: ${message}<br>`;
         
         // Scroll to the bottom of the div
         messagesLog.scrollTop = messagesLog.scrollHeight;
