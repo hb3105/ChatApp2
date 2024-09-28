@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Direct Messages</h2>
+
+{% if current_receiver %}
+    <h3>Chatting with: {{ current_receiver.username }}</h3>
+{% else %}
+    <h3>Select a user to chat with.</h3>
+{% endif %}
+
+<div id="messages-log" style="height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px;">
+    {% for msg in messages %}
+        <p><strong>{{ msg.sender.username }}:</strong> {{ msg.message }} <em>{{ msg.timestamp }}</em></p>
+    {% endfor %}
+</div>
+
+<input id="message-input" type="text" placeholder="Type your message...">
+<button id="send-message" disabled>Send</button>
+
+<script>
+    let currentReceiver = '{{ current_receiver.username }}';
+
+    // Function to check input and enable/disable send button
+    function toggleSendButton() {
+        const messageInput = document.querySelector('#message-input');
+        const sendButton = document.querySelector('#send-message');
+        sendButton.disabled = messageInput.value.trim() === '';
+    }
+
+    // Event listener for input changes
+    document.querySelector('#message-input').addEventListener('input', toggleSendButton);
+
+    document.querySelector('#send-message').onclick = function(e) {
+        const message = document.querySelector('#message-input').value.trim();
+        if (message && currentReceiver) {
+            chatSocket.send(JSON.stringify({
+                'message': message,
+                'receiver': currentReceiver
+            }));
+            document.querySelector('#message-input').value = '';
+            toggleSendButton(); // Disable the button after sending
+        }
+    };
+
+    // WebSocket connection
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/direct_messages/'
+    );
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const { message, sender } = data;
+        
+        // Append the message to the messages log
+        const messagesLog = document.querySelector('#messages-log');
+        messagesLog.innerHTML += `<p><strong>${sender}:</strong> ${message} <em>${new Date().toLocaleString()}</em></p>`;
+        
+        // Scroll to the bottom of the div
+        messagesLog.scrollTop = messagesLog.scrollHeight;
+    };
+
+    chatSocket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+</script>
+
+{% endblock %}
