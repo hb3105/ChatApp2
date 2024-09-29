@@ -1,17 +1,17 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h2>Direct Messages</h2>
+<h5>Username: {{request.user|capfirst}}</h5>
 
 {% if current_receiver %}
-    <h3>Chatting with: {{ current_receiver.username }}</h3>
+    <h5>Direct message with: {{ current_receiver.username|capfirst }}</h5>
 {% else %}
     <h3>Select a user to chat with.</h3>
 {% endif %}
 
 <div id="messages-log" style="height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px;">
     {% for msg in messages %}
-    {{ msg.timestamp }} {{ msg.sender.username }}: {{ msg.message }}<br>
+    {{ msg.timestamp }} {{ msg.sender.username|capfirst }}: {{ msg.message }}<br>
     {% endfor %}
 </div>
 

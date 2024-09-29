@@ -1,26 +1,59 @@
+<!-- ChatApp/chat/search_users.html -->
 {% extends 'base.html' %}
-
 {% block content %}
-<h2>Search Users</h2>
+<br>
+<h5>Hello, {{ user.username|capfirst|default:'Guest' }}!</h5>
 
-<form method="get">
-  <label for="query">Search by username:</label>
-  <input type="text" name="query" id="query" value="{{ query }}">
-  <input type="submit" value="Search">
-</form>
+<div>
+  {% if user.is_authenticated %}
+    <br>
+    <h5>Search Users</h5>
+    <form method="get">
+      <label for="query">Enter the first few characters of username:</label>
+      <input type="text" name="query" id="query" value="{{ query }}">
+      <input type="submit" value="Search">
+    </form>
+    <br>
+    {% if users %}
+      <h5>Search Results</h5>
+      <ul>
+        {% for user in users %}
+          <li>
+            <a href="{% url 'chat:direct_messages' %}?receiver={{ user.username }}">{{ user.username|capfirst }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No users found for your search.</p>
+    {% endif %}
+    <a href="#" onclick="logout()">Logout</a>
+  {% else %}
+    <a href="{% url 'users:login' %}">Login</a>&nbsp;
+    <a href="{% url 'users:register' %}">Register</a>
+  {% endif %}
+</div>
 
-{% if users %}
-  <h3>Search Results</h3>
-  <ul>
-    {% for user in users %}
-      <li>
-        <a href="{% url 'chat:direct_messages' %}?receiver={{ user.username }}">{{ user.username }}</a> (Send message)
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>No users found for your search.</p>
-{% endif %}
-<a href="{% url 'users:dashboard' %}">Dashboard</a>
+<script>
+function logout() {
+    // Create a form element
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "users:logout" %}';
 
+    // Create a hidden input field for the CSRF token
+    var csrfTokenInput = document.createElement('input');
+    csrfTokenInput.type = 'hidden';
+    csrfTokenInput.name = 'csrfmiddlewaretoken';
+    csrfTokenInput.value = '{{ csrf_token }}';
+
+    // Append the CSRF token input to the form
+    form.appendChild(csrfTokenInput);
+
+    // Append the form to the document body
+    document.body.appendChild(form);
+
+    // Submit the form
+    form.submit();
+}
+</script>
 {% endblock %}
