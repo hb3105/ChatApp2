@@ -2,15 +2,14 @@
 {% extends 'base.html' %}
 {% block content %}
 <br>
-Hello, {{ user.username|capfirst|default:'Guest' }}!
+Hello, <b>{{ user.username|capfirst|default:'Guest' }}!</b>
 
 <div>
   {% if user.is_authenticated %}
-    <br>
     {% if user.user_type == 'pro' %}
-        <p>Your subscription type: pro</p>
+        <p>Your subscription type: <b>PRO</b></p>
     {% else %}
-        <p>Your subscription type: basic</p>
+        <p>Your subscription type: <b>BASIC</b></p>
     {% endif %}
     <a href="{% url 'chat:index' %}">Chatrooms</a><br>
     <a href="{% url 'users:password_change' %}">Change password</a> <br>

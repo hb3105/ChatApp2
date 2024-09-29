@@ -26,7 +26,9 @@
     {% else %}
       <p>No users found for your search.</p>
     {% endif %}
-    <a href="#" onclick="logout()">Logout</a>
+    <a href="#" onclick="logout()">Logout</a> &nbsp;
+    <a href="{% url 'users:dashboard' %}"">Dashboard</a> &nbsp;
+
   {% else %}
     <a href="{% url 'users:login' %}">Login</a>&nbsp;
     <a href="{% url 'users:register' %}">Register</a>
