@@ -21,17 +21,20 @@
             {% endfor %}
         </ul>
 
+        {% if user.user_type == 'pro' %}  
         <h5>Create a new Chat Room</h5>
         <form id="create-room-form" method="POST">
             {% csrf_token %}
             <input id="room-name-input" name="room_name" type="text" size="50" required><br>
             <input id="room-name-submit" type="submit" value="Enter"> <br>
         </form>
+        {% endif %}
+        
         <a href="#" onclick="logout()">Logout</a>&nbsp;
-
     {% else %}
         <h5>You can access this page only if you are logged in.</h5>
     {% endif %}
+
     <a href="{% url 'users:dashboard' %}">Dashboard</a>
 
     <script>

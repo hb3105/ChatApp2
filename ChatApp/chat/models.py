@@ -1,6 +1,7 @@
 # chat/models.py
+from django.conf import settings
 from django.db import models
-from django.contrib.auth.models import User
+from users.models import User
 
 class Room(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -24,13 +25,14 @@ class Message(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.username}: {self.message[:20]} at {self.timestamp}"
-    
+        return f"{self.username}: {self.message[:20]} at {self.timestamp}" 
+   
 class DirectMessage(models.Model):
-    sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)
-    receiver = models.ForeignKey(User, related_name='received_messages', on_delete=models.CASCADE)
+    # Use settings.AUTH_USER_MODEL for flexibility with custom user models
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='sent_messages', on_delete=models.CASCADE)
+    receiver = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='received_messages', on_delete=models.CASCADE)
     message = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField(auto_now_add=True, auto_now=False)  # Recommended
 
     def __str__(self):
         return f"From {self.sender.username} to {self.receiver.username}: {self.message[:20]} at {self.timestamp}"

@@ -5,7 +5,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
 from .models import Room, Message, DirectMessage
-from django.contrib.auth.models import User
+from users.models import User
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -141,8 +141,8 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
         }))
 
     @database_sync_to_async
-    def get_user(self, username):
-        return User.objects.filter(username=username).first()
+    def get_user(self, receiver_username):
+        return User.objects.filter(username=receiver_username).first()
 
     @database_sync_to_async
     def save_direct_message(self, sender, receiver, message):

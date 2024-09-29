@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from .models import Room, DirectMessage
 from django.http import JsonResponse
 from django.contrib import messages
-from django.contrib.auth.models import User
+from users.models import User  
 from django.db.models import Q
 from django.urls import reverse
 

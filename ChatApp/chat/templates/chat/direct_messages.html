@@ -11,7 +11,7 @@
 
 <div id="messages-log" style="height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px;">
     {% for msg in messages %}
-    {{ msg.timestamp }} {{ msg.sender.username|capfirst }}: {{ msg.message }}<br>
+        {{ msg.timestamp }} {{ msg.sender.username|capfirst }}: {{ msg.message }}<br>
     {% endfor %}
 </div>
 

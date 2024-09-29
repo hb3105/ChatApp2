@@ -1,7 +1,7 @@
 # users/views.py
 
 from django.contrib.auth import login
-from django.contrib.auth.models import User
+from users.models import User  
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from users.forms import CustomUserCreationForm
