@@ -17,9 +17,10 @@
       <h5>Search Results</h5>
       <ul>
         {% for user in users %}
-          <li>
+          {% if not user.is_staff %}  <li>
             <a href="{% url 'chat:direct_messages' %}?receiver={{ user.username }}">{{ user.username|capfirst }}</a>
           </li>
+          {% endif %}
         {% endfor %}
       </ul>
     {% else %}
