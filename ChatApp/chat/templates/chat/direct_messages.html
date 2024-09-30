@@ -9,87 +9,86 @@
     <h3>Select a user to chat with.</h3>
 {% endif %}
 
-<div id="messages-log" style="height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px;">
-    {% for msg in messages %}
-        {{ msg.timestamp }} {{ msg.sender.username|capfirst }}: {{ msg.message }}<br>
-    {% endfor %}
+<textarea id="message-log" cols="100" rows="20" readonly></textarea><br>
+<div class="message-input-container">
+    <input id="message-input" type="text" size="90" placeholder="Type your message...">
+    <input id="message-submit" type="button" value="Send">
 </div>
-
-<input id="message-input" type="text" placeholder="Type your message...">
-<button id="send-message" disabled>Send</button> <br>
 
 <a href="#" onclick="logout()">Logout</a>&nbsp;
 <a href="{% url 'users:dashboard' %}">Dashboard</a>
 
 <script>
+    const messageLog = document.querySelector('#message-log'); // Declare messageLog globally
+    const receiverSelect = document.querySelector('#receiver-select');
     let currentReceiver = '{{ current_receiver.username }}';
 
-    // Function to check input and enable/disable send button
-    function toggleSendButton() {
-        const messageInput = document.querySelector('#message-input');
-        const sendButton = document.querySelector('#send-message');
-        sendButton.disabled = messageInput.value.trim() === '';
-    }
-
-    // Event listener for input changes
-    document.querySelector('#message-input').addEventListener('input', toggleSendButton);
-
-    document.querySelector('#send-message').onclick = function(e) {
-        const message = document.querySelector('#message-input').value.trim();
-        if (message && currentReceiver) {
-            chatSocket.send(JSON.stringify({
-                'message': message,
-                'receiver': currentReceiver
-            }));
-            document.querySelector('#message-input').value = '';
-            toggleSendButton(); // Disable the button after sending
-        }
-    };
-
-    document.querySelector('#message-input').onkeyup = function(e) {
-        if (e.keyCode === 13) {  // Enter key press
-            document.querySelector('#send-message').click();
-        }
-    };
-
     // WebSocket connection
+    const receiver = '{{ current_receiver.username }}'; // Make sure this is set correctly in your template
     const chatSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/direct_messages/'
+        'ws://' + window.location.host + '/ws/direct_messages/' + receiver + '/'
     );
+
 
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        const { message, sender, timestamp } = data;
-        
-        // Append the message to the messages log
-        const messagesLog = document.querySelector('#messages-log');
-        messagesLog.innerHTML += `${timestamp} ${sender}: ${message}<br>`;
-        
-        // Scroll to the bottom of the div
-        messagesLog.scrollTop = messagesLog.scrollHeight;
+        console.log(data.messages)
+        if (data.messages) {
+                data.messages.forEach(message => {
+                    const { timestamp, username, message: messageText } = message;
+                    messageLog.value += `${timestamp} ${username}: ${messageText}\n`;
+                });
+        }
+        else {
+            const { message, sender, timestamp } = data;
+            console.log(data)
+            messageLog.value += `${timestamp} ${sender}: ${message}\n`;
+        }
     };
 
     chatSocket.onclose = function(e) {
         console.error('Chat socket closed unexpectedly');
     };
+
+    document.querySelector('#message-input').focus();
+    document.querySelector('#message-input').onkeyup = function(e) {
+        if (e.keyCode === 13) {  // enter, return
+            document.querySelector('#message-submit').click();
+        }
+    };
+
+    document.querySelector('#message-submit').onclick = function(e) {
+        const messageInputDom = document.querySelector('#message-input');
+
+        var messageInput = messageInputDom.value.trim();  // remove leading or trailing whitespaces
+        if (messageInput) {  // Only send message if there's valid input
+            chatSocket.send(JSON.stringify({
+                message: messageInput,
+                'receiver': currentReceiver
+            }));
+            messageInputDom.value = '';
+        }
+    };
+</script>
+<script>
     function logout() {
         // Create a form element
         var form = document.createElement('form');
         form.method = 'POST';
         form.action = '{% url "users:logout" %}';
-
+    
         // Create a hidden input field for the CSRF token
         var csrfTokenInput = document.createElement('input');
         csrfTokenInput.type = 'hidden';
         csrfTokenInput.name = 'csrfmiddlewaretoken';
         csrfTokenInput.value = '{{ csrf_token }}';
-
+    
         // Append the CSRF token input to the form
         form.appendChild(csrfTokenInput);
-
+    
         // Append the form to the document body
         document.body.appendChild(form);
-
+    
         // Submit the form
         form.submit();
     }

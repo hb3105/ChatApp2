@@ -6,6 +6,7 @@ from channels.db import database_sync_to_async
 from django.utils import timezone
 from .models import Room, Message, DirectMessage
 from users.models import User
+from django.db.models import Q
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -88,13 +89,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
 class DirectMessageConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope['user']
-        self.room_group_name = f'direct_messages_{self.user.username}'
+        self.receiver_username = self.scope['url_route']['kwargs']['receiver']  # Assuming you pass it in the URL
+        self.receiver = await self.get_user(self.receiver_username)
+        
+        if self.receiver:
+            self.room_group_name = f'direct_messages_{self.user.username}'
+            await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+            await self.accept()
 
-        # Join the group for the logged-in user
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-        print('joining the direct message room: ', self.room_group_name)
-        await self.accept()
-
+            initial_messages = await self.get_direct_messages(self.user, self.receiver)
+            await self.send(text_data=json.dumps({"messages": initial_messages}))
+        else:
+            await self.close()
+        
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
@@ -140,6 +147,29 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
             'timestamp': timestamp
         }))
 
+    @database_sync_to_async
+    def get_direct_messages(self, user, receiver=None):
+        if receiver:
+            messages = DirectMessage.objects.filter(
+                (Q(sender=user) & Q(receiver=receiver)) | (Q(receiver=user) & Q(sender=receiver))
+            ).order_by('timestamp').select_related('sender', 'receiver').values(
+                'sender__username', 'message', 'timestamp'
+            )
+        else:
+            messages = DirectMessage.objects.filter(
+                Q(sender=user) | Q(receiver=user)
+            ).order_by('timestamp').select_related('sender', 'receiver').values(
+                'sender__username', 'message', 'timestamp'
+            )
+        return [
+            {
+                "username": msg['sender__username'],
+                "message": msg['message'],
+                "timestamp": msg['timestamp'].strftime("%b %d, %Y %H:%M")
+            }
+            for msg in messages
+        ]
+ 
     @database_sync_to_async
     def get_user(self, receiver_username):
         return User.objects.filter(username=receiver_username).first()

@@ -13,7 +13,7 @@
 
     <textarea id="chat-log" cols="100" rows="20" readonly></textarea><br>
     <div class="chat-input-container">
-        <input id="chat-message-input" type="text" size="95">
+        <input id="chat-message-input" type="text" size="90">
         <input id="chat-message-submit" type="button" value="Send">
     </div>
     
@@ -67,16 +67,16 @@
         };
 
         document.querySelector('#chat-message-submit').onclick = function(e) {
-        const messageInputDom = document.querySelector('#chat-message-input');   
+            const messageInputDom = document.querySelector('#chat-message-input');   
 
-        var messageInput = messageInputDom.value.trim();  // remove leading or trailing whitespaces
-        if (messageInput) {  // Only send message if there's valid input
-            chatSocket.send(JSON.stringify({
-            message: messageInput,
-            username: '{{ request.user.username|capfirst }}'
-            }));
-            messageInputDom.value = '';
-        }
+            var messageInput = messageInputDom.value.trim();  // remove leading or trailing whitespaces
+            if (messageInput) {  // Only send message if there's valid input
+                chatSocket.send(JSON.stringify({
+                message: messageInput,
+                username: '{{ request.user.username|capfirst }}'
+                }));
+                messageInputDom.value = '';
+            }
         };
     </script>
 
