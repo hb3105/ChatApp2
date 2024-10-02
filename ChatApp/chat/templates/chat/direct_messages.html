@@ -36,13 +36,15 @@
         if (data.messages) {
                 data.messages.forEach(message => {
                     const { timestamp, username, message: messageText } = message;
-                    messageLog.value += `${timestamp} ${username}: ${messageText}\n`;
+                    const capitalizedUsername = username.charAt(0).toUpperCase() + username.slice(1);
+                    messageLog.value += `${timestamp} ${capitalizedUsername}: ${messageText}\n`;
                 });
         }
         else {
             const { message, sender, timestamp } = data;
             console.log(data)
-            messageLog.value += `${timestamp} ${sender}: ${message}\n`;
+            const capitalizedSender = sender.charAt(0).toUpperCase() + sender.slice(1);
+            messageLog.value += `${timestamp} ${capitalizedSender}: ${message}\n`;
         }
     };
 
