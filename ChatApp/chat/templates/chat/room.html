@@ -7,9 +7,14 @@
 {% block content %}
     {% if user.is_authenticated %}
     <a href="{% url 'chat:index' %}">Back to Chatrooms</a> <br>
-    <h5>Room: {{room_name|capfirst}}</h5>
-    <h5>Username: {{request.user|capfirst}}</h5>
-    <br>
+    Room: <b>{{room_name|capfirst}}</b><br>
+    Username: <b>{{request.user|capfirst}}</b><br>
+    {% if user.user_type == 'pro' %}
+        Your subscription type: <b>PRO</b>
+    {% else %}
+        Your subscription type: <b>BASIC</b>
+    {% endif %}
+    <br><br>
 
     <textarea id="chat-log" cols="100" rows="20" readonly></textarea><br>
     <div class="chat-input-container">

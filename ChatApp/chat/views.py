@@ -1,3 +1,4 @@
+# ChatApp/chat/views.py
 from django.shortcuts import render, redirect
 from .models import Room, DirectMessage
 from django.http import JsonResponse

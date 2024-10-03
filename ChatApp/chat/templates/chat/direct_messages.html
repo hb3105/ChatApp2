@@ -1,17 +1,21 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h5>Username: {{request.user|capfirst}}</h5>
-
+Username: <b>{{request.user|capfirst}}</b>&nbsp;&nbsp;
 {% if current_receiver %}
-    <h5>Direct message with: {{ current_receiver.username|capfirst }}</h5>
-{% else %}
-    <h3>Select a user to chat with.</h3>
+    messaging with: <b>{{ current_receiver.username|capfirst }}</b><br>
 {% endif %}
 
-<textarea id="message-log" cols="100" rows="20" readonly></textarea><br>
+{% if user.user_type == 'pro' %}
+    Your subscription type: <b>PRO</b>
+{% else %}
+    Your subscription type: <b>BASIC</b>
+{% endif %}
+<br><br>
+
+<textarea id="message-log" cols="70" rows="20" readonly></textarea><br>
 <div class="message-input-container">
-    <input id="message-input" type="text" size="90" placeholder="Type your message...">
+    <input id="message-input" type="text" size="50" placeholder="Type your message...">
     <input id="message-submit" type="button" value="Send">
 </div>
 

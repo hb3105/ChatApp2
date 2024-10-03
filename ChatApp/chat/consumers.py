@@ -71,8 +71,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_messages(self, room_name):
-        messages = Message.objects.filter(room__name=room_name).order_by('timestamp').values('username', 'message', 'timestamp')
-        # Format messages to a serializable structure
+        # get chat history based on user type 
+        yesterday = timezone.now() - timezone.timedelta(days=1)
+
+        if self.scope['user'].user_type == 'pro':
+            # Show entire chat history for pro users
+            messages = Message.objects.filter(room__name=room_name).order_by('timestamp').values('username', 'message', 'timestamp')
+        else:
+            # Show messages from the last 24 hours for basic users
+            messages = Message.objects.filter(
+                room__name=room_name,
+                timestamp__gte=yesterday
+            ).order_by('timestamp').values('username', 'message', 'timestamp')
+
         return [
             {
                 "username": msg['username'],
@@ -146,15 +157,26 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
             'sender': sender,
             'timestamp': timestamp
         }))
-
+ 
     @database_sync_to_async
     def get_direct_messages(self, user, receiver=None):
+        now = timezone.now()
+        yesterday = now - timezone.timedelta(days=1)
+
         if receiver:
-            messages = DirectMessage.objects.filter(
-                (Q(sender=user) & Q(receiver=receiver)) | (Q(receiver=user) & Q(sender=receiver))
-            ).order_by('timestamp').select_related('sender', 'receiver').values(
-                'sender__username', 'message', 'timestamp'
-            )
+            if user.user_type == 'pro':
+                messages = DirectMessage.objects.filter(
+                    (Q(sender=user) & Q(receiver=receiver)) | (Q(receiver=user) & Q(sender=receiver))
+                ).order_by('timestamp').select_related('sender', 'receiver').values(
+                    'sender__username', 'message', 'timestamp'
+                )
+            else:
+                messages = DirectMessage.objects.filter(
+                    (Q(sender=user) & Q(receiver=receiver)) | (Q(receiver=user) & Q(sender=receiver)),
+                    timestamp__gte=yesterday
+                ).order_by('timestamp').select_related('sender', 'receiver').values(
+                    'sender__username', 'message', 'timestamp'
+                )
         else:
             messages = DirectMessage.objects.filter(
                 Q(sender=user) | Q(receiver=user)
@@ -166,8 +188,7 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
                 "username": msg['sender__username'],
                 "message": msg['message'],
                 "timestamp": msg['timestamp'].strftime("%b %d, %Y %H:%M")
-            }
-            for msg in messages
+            } for msg in messages
         ]
  
     @database_sync_to_async
