@@ -41,7 +41,13 @@
             <input type="submit" value="Invite">
         </form>
         {% endif %}
-        <br><br>
+        {% if messages %}
+            <br>
+                {% for message in messages %}
+                    {{ message }}<br>
+                {% endfor %}
+        {% endif %}
+        <br>
 
         <textarea id="chat-log" cols="70" rows="15" readonly></textarea><br>
         <div class="chat-input-container">

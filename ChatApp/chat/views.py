@@ -70,9 +70,9 @@ def remove_user_from_room(request, room_name, username):
             user_to_remove = User.objects.get(username=username)
             if user_to_remove in room.users.all():
                 room.users.remove(user_to_remove)
-                messages.success(request, f"{username} has been removed from {room_name}.")
+                messages.success(request, f"{username.capitalize()} has been removed from {room_name}.")
             else:
-                messages.error(request, f"{username} is not a participant in this room.")
+                messages.error(request, f"{username.capitalize()} is not a participant in this room.")
         except Room.DoesNotExist:
             messages.error(request, "Room does not exist.")
         except User.DoesNotExist:
@@ -80,7 +80,9 @@ def remove_user_from_room(request, room_name, username):
     else:
         messages.error(request, "Only PRO users can remove others.")
     
-    return redirect('chat:room')  # Redirect back to the room
+    #return to the same room
+    room_url = reverse('chat:room') + f'?room_name={room_name}'
+    return redirect(room_url)
     
 # Invite users to the group
 def invite_to_room(request, room_name):
@@ -92,14 +94,15 @@ def invite_to_room(request, room_name):
             if request.user.user_type == 'pro':
                 room = Room.objects.get(name=room_name)
                 room.users.add(user_to_invite)
-                messages.success(request, f"{username} has been invited to {room_name}.")
+                messages.success(request, f"{username.capitalize()} has been invited to {room_name}.")
             else:
                 messages.error(request, "Only PRO users can invite others.")
         else:
-            messages.error(request, f"User '{username}' does not exist.")
+            messages.error(request, f"User '{username.capitalize()}' does not exist.")
     
-    return redirect('chat:room')  # Redirect back to the room
-
+    #return to the same room
+    room_url = reverse('chat:room') + f'?room_name={room_name}'
+    return redirect(room_url)
 
 def direct_messages(request):
     if request.user.is_authenticated:
