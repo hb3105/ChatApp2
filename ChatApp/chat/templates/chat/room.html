@@ -6,29 +6,36 @@
 
 {% block content %}
     {% if user.is_authenticated %}
-        <a href="{% url 'chat:index' %}">Back to Groups</a> <br>
-        Room: <b>{{room_name|capfirst}}</b><br>
-        Username: <b>{{request.user|capfirst}}</b><br>
+        Hello, <b>{{ user.username|capfirst|default:'Guest' }}!</b>
         {% if user.user_type == 'pro' %}
-            Your subscription type: <b>PRO</b>
+            (Pro)<sup>*</sup>
         {% else %}
-            Your subscription type: <b>BASIC</b>
+            (Basic)<sup>*</sup>
         {% endif %}
-        <br><br>
-        <h5>Participants</h5>
-        <ul id="participant-list"></ul>
+        <br>
+        <span style="color: #999; font-size: 0.8em;"><sup>*</sup>Pro users can create groups and add users, in addition to seeing entire chat history.</span><br>
+        Room: <b>{{room_name|capfirst}}</b><br><br>
+        
+        <b>Participants</b>
+        <ul id="participant-list">
+        </ul>
             {% for participant in participants %}
                 <li>
-                    {{ participant.username }}
+                    <a href="{% url 'chat:direct_messages' %}?receiver={{ participant }}">{{ participant }}</a>
                     {% if user.user_type == 'pro' and participant != request.user %}
-                        <a href="{% url 'chat:remove_user_from_room' room_name participant.username %}" onclick="return confirmDelete();" style="color: red; font-size: 12px; cursor: pointer;">&#x2716;</a>
+                        <form action="{% url 'chat:remove_user_from_room' room_name participant.username %}" method="POST" style="display:inline;" onsubmit="return confirmDelete();">
+                            {% csrf_token %}
+                            <input type="submit" value="X" style="color: red; background: none; border: none; cursor: pointer; font-size: 12px;">
+                        </form>
                     {% endif %}
                 </li>
+            {% empty %}
+                <li>No other participants.</li>
             {% endfor %}
         </ul>
 
         {% if user.user_type == 'pro' %}
-        <h5>Invite User to Room</h5>
+        <b>Invite User to Room</b>
         <form method="POST" action="{% url 'chat:invite_to_room' room_name %}">
             {% csrf_token %}
             <input type="text" name="username" placeholder="Enter username to invite" required>
@@ -37,16 +44,15 @@
         {% endif %}
         <br><br>
 
-        <textarea id="chat-log" cols="100" rows="20" readonly></textarea><br>
+        <textarea id="chat-log" cols="70" rows="15" readonly></textarea><br>
         <div class="chat-input-container">
-            <input id="chat-message-input" type="text" size="90">
+            <input id="chat-message-input" type="text" size="50">
             <input id="chat-message-submit" type="button" value="Send">
         </div>
         
         {{ room_name|json_script:"room-name" }}
-
-        <a href="#" onclick="logout()">Logout</a>&nbsp;
         <a href="{% url 'users:dashboard' %}">Dashboard</a>
+        <a href="#" onclick="logout()">Logout</a>&nbsp;
     {% else %}
         <h5>You can access this page only if you are logged in.</h5>
         <a href="{% url 'users:dashboard' %}">Dashboard</a>
