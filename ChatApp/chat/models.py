@@ -5,6 +5,7 @@ from users.models import User
 
 class Room(models.Model):
     name = models.CharField(max_length=100, unique=True)
+    users = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='rooms', blank=True)
 
     def clean_name(self):
         # Capitalize the first letter of the room name

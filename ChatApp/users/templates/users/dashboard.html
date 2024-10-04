@@ -3,17 +3,22 @@
 {% block content %}
 <br>
 Hello, <b>{{ user.username|capfirst|default:'Guest' }}!</b>
+{% if user.is_authenticated %}
+    {% if user.user_type == 'pro' %}
+        (Pro)<sup>*</sup>
+    {% else %}
+        (Basic)<sup>*</sup>
+    {% endif %}
+    <br>
+    <span style="color: #999; font-size: 0.8em;"><sup>*</sup>Pro users can create groups and add users, in addition to seeing entire chat history.</span>
+{% endif %}
 
 <div>
+  <p></p>
   {% if user.is_authenticated %}
-    {% if user.user_type == 'pro' %}
-        <p>Your subscription type: <b>PRO</b></p>
-    {% else %}
-        <p>Your subscription type: <b>BASIC</b></p>
-    {% endif %}
-    <a href="{% url 'chat:index' %}">Chatrooms</a><br>
-    <a href="{% url 'users:password_change' %}">Change password</a> <br>
+    <a href="{% url 'chat:index' %}">Groups</a><br>
     <a href="{% url 'users:search_users' %}">Search Users</a><br>
+    <a href="{% url 'users:password_change' %}">Change password</a> <br>
     <a href="#" onclick="logout()">Logout</a>
   {% else %}
     <a href="{% url 'users:login' %}">Login</a>&nbsp;

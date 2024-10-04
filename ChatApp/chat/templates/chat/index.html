@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Chat Rooms{% endblock %}
+{% block title %}My Groups{% endblock %}
 
 {% block content %}
     {% if messages %}
@@ -12,10 +12,18 @@
     {% endif %}
 
     {% if user.is_authenticated %}
-        <h5>Chat Rooms</h5>
+        <h5>My Groups</h5>
         <ul id="room-list">
             {% for room in rooms %}
-                <li><a href="{% url 'chat:room' %}?room_name={{ room.name }}">{{ room.name }}</a></li>
+                <li>
+                    <a href="{% url 'chat:room' %}?room_name={{ room.name }}">{{ room.name }}</a>
+                    {% if user.user_type == 'pro' %} 
+                        <form action="{% url 'chat:remove_room' room.name %}" method="POST" style="display:inline;" onsubmit="return confirmDelete();">
+                            {% csrf_token %}
+                            <input type="submit" value="X" style="color: red; background: none; border: none; cursor: pointer; font-size: 12px;">
+                        </form>
+                    {% endif %}
+                </li>
             {% empty %}
                 <li>No rooms available.</li>
             {% endfor %}
@@ -86,6 +94,11 @@
         
             // Submit the form
             form.submit();
+        }
+    </script>
+    <script>
+        function confirmDelete() {
+            return confirm("Are you sure you want to delete this room? This action cannot be undone.");
         }
     </script>
 {% endblock %}
