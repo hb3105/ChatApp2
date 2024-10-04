@@ -48,7 +48,8 @@ def room(request):
                 messages.error(request, "You do not have access to this room.")
                 return redirect('chat:index')
 
-            participants = room.users.all()  # Get all users in the room
+            # Get all users in the group except the current user
+            participants = room.users.all().exclude(username=request.user.username)  
 
             return render(request, "chat/room.html", {
                 "room_name": room_name,

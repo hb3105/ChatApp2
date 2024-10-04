@@ -13,15 +13,14 @@
             (Basic)<sup>*</sup>
         {% endif %}
         <br>
-        <span style="color: #999; font-size: 0.8em;"><sup>*</sup>Pro users can create groups and add users, in addition to seeing entire chat history.</span><br>
-        Room: <b>{{room_name|capfirst}}</b><br><br>
+        <span style="color: #999; font-size: 0.8em;"><sup>*</sup>Pro users can create groups and add users, in addition to seeing entire chat history.</span><br><br>
         
+        <b>Group :</b> {{room_name|capfirst}}<br>
         <b>Participants</b>
         <ul id="participant-list">
-        </ul>
-            {% for participant in participants %}
+           {% for participant in participants %}
                 <li>
-                    <a href="{% url 'chat:direct_messages' %}?receiver={{ participant }}">{{ participant }}</a>
+                    <a href="{% url 'chat:direct_messages' %}?receiver={{ participant }}">{{ participant|capfirst }}</a>
                     {% if user.user_type == 'pro' and participant != request.user %}
                         <form action="{% url 'chat:remove_user_from_room' room_name participant.username %}" method="POST" style="display:inline;" onsubmit="return confirmDelete();">
                             {% csrf_token %}
@@ -35,7 +34,7 @@
         </ul>
 
         {% if user.user_type == 'pro' %}
-        <b>Invite User to Room</b>
+        <b>Invite</b> User to the group.
         <form method="POST" action="{% url 'chat:invite_to_room' room_name %}">
             {% csrf_token %}
             <input type="text" name="username" placeholder="Enter username to invite" required>
