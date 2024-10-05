@@ -71,7 +71,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 messages = await self.get_messages(self.room_name)
                 await self.channel_layer.group_send(
                     self.room_group_name, {
-                        "type": "chat.update",
+                        "type": "chat_message",
                         "messages": messages
                     }
                 )
@@ -122,18 +122,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             message.delete()
         except Message.DoesNotExist:
             print(f"Message with id {message_id} does not exist.")
-
-    async def update_messages(self, event):
-        messages = event['messages']
-        print('update_messages is invoked')
-        # Instead of calling appendMessage, send data to the template
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat.update',  # Use a specific event type for clarity
-                'messages': messages
-            }
-        )
 
     @database_sync_to_async
     def get_messages(self, room_name):
