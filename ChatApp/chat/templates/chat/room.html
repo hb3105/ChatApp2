@@ -18,7 +18,7 @@
         <b>Group :</b> {{room_name|capfirst}}<br>
         <b>Participants</b>
         <ul id="participant-list">
-           {% for participant in participants %}
+            {% for participant in participants %}
                 <li>
                     <a href="{% url 'chat:direct_messages' %}?receiver={{ participant }}">{{ participant|capfirst }}</a>
                     {% if user.user_type == 'pro' and participant != request.user %}
@@ -49,12 +49,14 @@
         {% endif %}
         <br>
 
-        <textarea id="chat-log" cols="70" rows="15" readonly></textarea><br>
-        <div class="chat-input-container">
-            <input id="chat-message-input" type="text" size="50">
-            <input id="chat-message-submit" type="button" value="Send">
+        <div>
+            <div id="chat-log" style="border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto;"></div><br>
+            <div class="chat-input-container">
+                <input id="chat-message-input" type="text" size="50">
+                <input id="chat-message-submit" type="button" value="Send">
+            </div>
         </div>
-        
+
         {{ room_name|json_script:"room-name" }}
         <a href="{% url 'users:dashboard' %}">Dashboard</a>
         <a href="#" onclick="logout()">Logout</a>&nbsp;
@@ -63,6 +65,13 @@
         <a href="{% url 'users:dashboard' %}">Dashboard</a>
     {% endif %}
     
+    <!-- Message Template -->
+    <div id="message-template" style="display: none;">
+        <span class="timestamp"></span> | <b class="username"></b>: <span class="message-content"></span>
+        <button class="delete-message-button" style="color: red; background: none; border: none; cursor: pointer;">X</button>
+        <br>
+    </div>
+
     <script>
         const roomName = JSON.parse(document.getElementById('room-name').textContent);
         let chatSocket = null;  // Store the WebSocket connection reference
@@ -80,19 +89,20 @@
 
             chatSocket.onmessage = function(e) {
                 const data = JSON.parse(e.data);
-        
-                // This should handle messages from other users
-                const { username = "Unknown User", message = "No message", timestamp = "Unknown time" } = data;
-                
                 // Check if messages are present
                 if (data.messages) {
+                    // Clear existing messages before appending new ones (when a message is deleted, we reload with the remaining messages)
+                    document.getElementById('chat-log').innerHTML = '';  // Set innerHTML to empty string to clear all children
+
                     data.messages.forEach(msg => {
-                        const { username, message, timestamp } = msg;
-                        document.querySelector('#chat-log').value += `${timestamp} ${username}: ${message}\n`;
+                        const { username, message, timestamp, message_id } = msg;
+                        appendMessage(username, message, timestamp, message_id);
                     });
+                } else if (data.type === 'delete') {
+                    handleDeleteNotification(data.message_id);
                 } else {
-                    const { username = "Unknown User", message = "No message", timestamp = "Unknown time" } = data;
-                    document.querySelector('#chat-log').value += `${timestamp} ${username}: ${message}\n`;
+                    const { username = "Unknown User", message = "No message", timestamp = "Unknown time", message_id } = data;
+                    appendMessage(username, message, timestamp, message_id);
                 }
             };
 
@@ -103,27 +113,123 @@
             };
         }
 
-        connectToChat();
+        function appendMessage(username, message, timestamp, message_id) {
+            const messageTemplate = document.getElementById('message-template').cloneNode(true);
+            messageTemplate.id = '';
+            messageTemplate.style.display = '';
+            messageTemplate.querySelector('.timestamp').textContent = timestamp;
+            messageTemplate.querySelector('.username').textContent = username;
+            messageTemplate.querySelector('.message-content').textContent = message;
+
+            if ('{{ user.user_type }}' === 'pro') {
+                const deleteButton = messageTemplate.querySelector('.delete-message-button');
+                deleteButton.dataset.messageId = message_id;
+                deleteButton.addEventListener('click', () => handleDeleteMessage(message_id));
+            } else {
+                messageTemplate.querySelector('.delete-message-button').remove();
+            }
+
+            document.getElementById('chat-log').appendChild(messageTemplate);
+            scrollToBottom();
+
+            // Show notification for new message
+            showNotification(username, message);
+        }
+
+        function showNotification(username, message) {
+            if (Notification.permission === 'granted') {
+                const notification = new Notification(`New message from ${username}`, {
+                    body: message,
+                    icon: '/static/chat/images/icon.png' // Customize this path if needed
+                });
+            }
+        }
+
+        function handleDeleteNotification(message_id) {
+            const messages = document.querySelectorAll('#chat-log > div'); // Adjust as needed to target messages
+            messages.forEach(msg => {
+                const deleteButton = msg.querySelector('.delete-message-button');
+                if (deleteButton && deleteButton.dataset.messageId == message_id) {
+                    msg.remove(); // Remove the message from the chat log
+                    showNotification("System", "A message has been deleted."); // Show deletion notification
+                }
+            });
+        }
+
+        function scrollToBottom() {
+            const chatLog = document.getElementById('chat-log');
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        function handleDeleteMessage(messageId) {
+            if (confirm("Are you sure you want to delete this message?")) {
+                fetch(`/chat/delete_message/${messageId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+                }).then(response => {
+                if (response.ok) {
+                    alert('Message deleted successfully.');
+                    // Send delete message notification via WebSocket
+                    chatSocket.send(JSON.stringify({
+                    type: 'delete',
+                    message_id: messageId
+                    }));
+                } else {
+                    alert('Error deleting message.');
+                }
+                });
+            }
+        }
+
+        // Request notification permission
+        if (Notification.permission === 'default') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    console.log('Notification permission granted.');
+                }
+            });
+        }
         
+        connectToChat();
         document.querySelector('#chat-message-input').focus();
         document.querySelector('#chat-message-input').onkeyup = function(e) {
             if (e.keyCode === 13) {  // enter, return
                 document.querySelector('#chat-message-submit').click();
             }
         };
-
         document.querySelector('#chat-message-submit').onclick = function(e) {
-            const messageInputDom = document.querySelector('#chat-message-input');   
-
-            var messageInput = messageInputDom.value.trim();  // remove leading or trailing whitespaces
-            if (messageInput) {  // Only send message if there's valid input
+            const messageInputDom = document.querySelector('#chat-message-input');
+            var messageInput = messageInputDom.value.trim();
+            if (messageInput) {
                 chatSocket.send(JSON.stringify({
-                message: messageInput,
-                username: '{{ request.user.username|capfirst }}'
+                    message: messageInput,
+                    username: '{{ request.user.username|capfirst }}',
+                    type: 'message',
                 }));
                 messageInputDom.value = '';
             }
         };
+
+        function handleDeleteNotification(message_id) {
+            const messages = document.querySelectorAll('#chat-log > div');
+            messages.forEach(msg => {
+                const deleteButton = msg.querySelector('.delete-message-button');
+                if (deleteButton && deleteButton.dataset.messageId == message_id) {
+                    msg.remove(); // Remove the deleted message
+                }
+            });
+
+            // Update the chat log with the updated list of messages
+            messages.forEach(msg => {
+                const { username, message, timestamp, message_id } = msg;
+                appendMessage(username, message, timestamp, message_id);
+            });
+
+            // Show notification for message deletion
+            showNotification("System", "A message has been deleted.");
+        }
     </script>
     <script>
         function logout() {
@@ -147,8 +253,7 @@
             // Submit the form
             form.submit();
         }
-    </script>
-    <script>
+    
         function confirmDelete() {
             return confirm("Are you sure you want to remove this user from the group?");
         }

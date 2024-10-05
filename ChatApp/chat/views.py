@@ -1,24 +1,28 @@
 # ChatApp/chat/views.py
-from django.shortcuts import render, redirect
-from .models import Room, DirectMessage
-from django.http import JsonResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from users.models import User  
+from django.http import JsonResponse
 from django.db.models import Q
 from django.urls import reverse
+from chat.models import Room, DirectMessage, Message
+from users.models import User  
 
+# The main chat page view where rooms, users can be found
 def index(request):
     if request.user.is_authenticated:
         rooms = Room.objects.filter(users=request.user)  # Only show rooms the user has access to
     else:
         rooms = Room.objects.none()  # No rooms for unauthenticated users
 
+    # Create a group/room if pro users
     if request.method == 'POST':
         room_name = request.POST.get('room_name', '').capitalize()
         if room_name and request.user.user_type == 'pro':  # Only allow pro users to create rooms
             room, created = Room.objects.get_or_create(name=room_name)
             room.users.add(request.user)  # Add the user to the room
             room.save()
+            # redirect the user to the newly created room/group
             room_url = reverse('chat:room') + f'?room_name={room_name}'
             return redirect(room_url)
         else:
@@ -26,6 +30,7 @@ def index(request):
 
     return render(request, "chat/index.html", {"rooms": rooms})
 
+# The view to handle deleting a room
 def remove_room(request, room_name):
     if request.method == 'POST' and request.user.user_type == 'pro':
         try:
@@ -127,3 +132,18 @@ def handle_unknown_url(request, any_path):
     if any_path == "dashboard":
         # Handle the dashboard URL specifically
         return redirect('users:dashboard')
+
+@login_required
+def delete_message(request, message_id):
+    # Check if the user is a Pro user and owns the message or has the right to delete it
+    if request.user.user_type == 'pro':  # Assuming you have this method on the user model
+        # Get the message to be deleted
+        message = get_object_or_404(Message, id=message_id)
+        message.delete()
+        # redirect the user to the newly created room/group
+        room_url = reverse('chat:room') + f'?room_name={message.room.name}'
+        return redirect(room_url)
+    else:    
+        # redirect the user to the newly created room/group
+        room_url = reverse('chat:room') + f'?room_name={message.room.name}'
+        return redirect(room_url)

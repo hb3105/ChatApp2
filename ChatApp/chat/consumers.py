@@ -14,8 +14,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # have a different group name without spaces to ensure rooms with spaces are created and websocket connection is established
         self.room_group_name = 'chat_{}'.format(self.room_name.replace(' ', '_'))  # replace the space with an _
 
-        #self.room_group_name = f"chat_{self.room_name}"
-
         # Join room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
@@ -35,70 +33,149 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         try:
             text_data_json = json.loads(text_data)
-            message = text_data_json.get("message")
-            username = text_data_json.get("username")
-            
-            # Check if message and username are present
-            if not message or not username:
-                raise ValueError("Message or username is missing")
+            message_type = text_data_json.get("type")  # Expecting 'message' or 'delete'
+            print(message_type)
+            if message_type == "message":
+                message = text_data_json.get("message")
+                username = text_data_json.get("username")
 
-            print(f"Received message: {message} from {username}")
+                # Check if message and username are present
+                if not message or not username:
+                    raise ValueError("Message or username is missing")
 
-            # Save message to the database
-            await self.save_message(self.room_name, username, message)
+                print(f"Received message: {message} from {username}")
 
-            # Send message to room group
-            await self.channel_layer.group_send(
-                self.room_group_name, {
-                    "type": "chat_message",
-                    "message": message,
-                    "username": username,
-                }
-            )
+                # Save message to the database and get the chat message object
+                chat_message = await self.save_message(self.room_name, username, message)
+
+                # Send message to room group
+                await self.channel_layer.group_send(
+                    self.room_group_name, {
+                        "type": "chat_message",
+                        "message": message,
+                        "username": username,
+                        "message_id": chat_message.id  # Send the message ID
+                    }
+                )
+
+            elif message_type == "delete":
+                message_id = text_data_json.get("message_id")
+                if not message_id:
+                    raise ValueError("Message ID is missing for delete request")
+
+                print(f"delete message is called for message id: {message_id}")
+                # Delete the message
+                await self.delete_message(message_id)
+
+                # Retrieve updated messages and send them to the group
+                messages = await self.get_messages(self.room_name)
+                await self.channel_layer.group_send(
+                    self.room_group_name, {
+                        "type": "chat.update",
+                        "messages": messages
+                    }
+                )
+
         except Exception as e:
             print(f"Error in receive: {e}")
+    
+    # Add a new method to handle notifications
+    async def notification(self, event):
+        notification_message = event['message']
+
+        # Send the notification to all clients in the group
+        await self.send(text_data=json.dumps({
+            'type': 'notification',
+            'message': notification_message,
+        }))
 
     # Receive message from room group
     async def chat_message(self, event):
         print(f"Broadcasting message: {event['message']} from {event['username']}")
         message = event["message"]
         username = event["username"]
+        message_id = event['message_id']
         timestamp = timezone.localtime(timezone.now()).strftime("%b %d, %Y %H:%M")
-        
+       
         # Send message with timestamp to all clients in the group
         await self.send(text_data=json.dumps({
             "message": message,
             "username": username,
-            "timestamp": timestamp
+            "timestamp": timestamp,
+            "message_id":message_id
         }))
+
+    #async def delete_message(self, event):
+     #   message_id = event['message_id']
+        
+        # Send the deletion event to all clients in the group
+      #  await self.send(text_data=json.dumps({
+       #     'type': 'delete',
+        #    'message_id': message_id
+        #}))
+        #print(f"Message with id {message_id} deleted.")
+
+    database_sync_to_async
+    def delete_message(self, message_id):
+        try:
+            message = Message.objects.get(id=message_id)
+            message.delete()
+        except Message.DoesNotExist:
+            print(f"Message with id {message_id} does not exist.")
+
+    async def update_messages(self, event):
+        messages = event['messages']
+        print('update_messages is invoked')
+        # Instead of calling appendMessage, send data to the template
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'chat.update',  # Use a specific event type for clarity
+                'messages': messages
+            }
+        )
 
     @database_sync_to_async
     def get_messages(self, room_name):
         # get chat history based on user type 
         yesterday = timezone.now() - timezone.timedelta(days=1)
 
-        if self.scope['user'].user_type == 'pro':
-            # Show entire chat history for pro users
-            messages = Message.objects.filter(room__name=room_name).order_by('timestamp').values('username', 'message', 'timestamp')
-        else:
-            # Show messages from the last 24 hours for basic users
-            messages = Message.objects.filter(
-                room__name=room_name,
-                timestamp__gte=yesterday
-            ).order_by('timestamp').values('username', 'message', 'timestamp')
+        if not self.scope['user'].is_anonymous:
+            if self.scope['user'].user_type == 'pro':
+                # Show entire chat history for pro users
+                messages = Message.objects.filter(room__name=room_name).order_by('timestamp').values('id', 'username', 'message', 'timestamp')
+            else:
+                # Show messages from the last 24 hours for basic users
+                messages = Message.objects.filter(
+                    room__name=room_name,
+                    timestamp__gte=yesterday
+                ).order_by('timestamp').values('id', 'username', 'message', 'timestamp')
 
-        return [
-            {
-                "username": msg['username'],
-                "message": msg['message'],
-                "timestamp": msg['timestamp'].strftime("%b %d, %Y %H:%M")
-            } for msg in messages
-        ]
+            return [
+                {
+                    "username": msg['username'],
+                    "message": msg['message'],
+                    "timestamp": msg['timestamp'].strftime("%b %d, %Y %H:%M"),
+                    "message_id":msg['id'] # Access 'id' as a key since msg is a dictionary
+                } for msg in messages
+            ]
+        else:
+            return None
 
     @database_sync_to_async
     def save_message(self, room_name, username, message):
         room = Room.objects.get(name=room_name)
-        Message.objects.create(room=room, username=username, message=message)
+        chat_message = Message.objects.create(room=room, username=username, message=message)
+        return chat_message
+
+    @database_sync_to_async
+    def delete_message(self, message_id):
+        try:
+            message = Message.objects.get(id=message_id)
+            message.delete()
+        except Message.DoesNotExist:
+            print(f"Message with id {message_id} does not exist.")
+
 
 class DirectMessageConsumer(AsyncWebsocketConsumer):
     async def connect(self):
