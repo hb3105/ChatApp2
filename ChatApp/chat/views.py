@@ -39,6 +39,7 @@ def remove_room(request, room_name):
     
     return redirect('chat:index')
 
+# load the room view for user
 def room(request):
     room_name = request.GET.get('room_name')
     if room_name:

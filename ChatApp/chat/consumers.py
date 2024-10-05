@@ -11,7 +11,10 @@ from django.db.models import Q
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
-        self.room_group_name = f"chat_{self.room_name}"
+        # have a different group name without spaces to ensure rooms with spaces are created and websocket connection is established
+        self.room_group_name = 'chat_{}'.format(self.room_name.replace(' ', '_'))  # replace the space with an _
+
+        #self.room_group_name = f"chat_{self.room_name}"
 
         # Join room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
