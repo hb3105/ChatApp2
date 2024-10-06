@@ -94,7 +94,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             username = event["username"]
             message_id = event['message_id']
             timestamp = timezone.localtime(timezone.now()).strftime("%b %d, %Y %H:%M")
-            print('timestamp: ', timestamp)
             print('chat_message single id: ', message_id)
 
             await self.send(text_data=json.dumps({
@@ -132,7 +131,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 {
                     "username": msg['username'],
                     "message": msg['message'],
-                    "timestamp": msg['timestamp'].strftime("%b %d, %Y %H:%M"),
+                    "timestamp": timezone.localtime(msg['timestamp']).strftime("%b %d, %Y %H:%M"),
                     "message_id":msg['id'] # Access 'id' as a key since msg is a dictionary
                 } for msg in messages
             ]
@@ -292,7 +291,7 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
             {
                 "username": msg['sender__username'],
                 "message": msg['message'],
-                "timestamp": msg['timestamp'].strftime("%b %d, %Y %H:%M"),
+                "timestamp": timezone.localtime(msg['timestamp']).strftime("%b %d, %Y %H:%M"),
                 "message_id":msg['id'],
             } for msg in messages
         ]
