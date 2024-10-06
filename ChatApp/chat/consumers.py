@@ -34,7 +34,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             text_data_json = json.loads(text_data)
             message_type = text_data_json.get("type")  # Expecting 'message' or 'delete'
-            print(message_type)
+            
             if message_type == "message":
                 message = text_data_json.get("message")
                 username = text_data_json.get("username")
@@ -91,31 +91,29 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     # Receive message from room group
     async def chat_message(self, event):
-        print(f"Broadcasting message: {event['message']} from {event['username']}")
-        message = event["message"]
-        username = event["username"]
-        message_id = event['message_id']
-        timestamp = timezone.localtime(timezone.now()).strftime("%b %d, %Y %H:%M")
-       
-        # Send message with timestamp to all clients in the group
-        await self.send(text_data=json.dumps({
-            "message": message,
-            "username": username,
-            "timestamp": timestamp,
-            "message_id":message_id
-        }))
+        if 'messages' in event:
+            messages = event['messages']
+            print('chat_message bulk delivery after deleting a message to all clients')
+            # Send the entire list of messages in one go
+            await self.send(text_data=json.dumps({
+                "messages": messages  # Send the messages array directly
+            }))
+        else:
+            # Handle normal message broadcasting
+            message = event["message"]
+            username = event["username"]
+            message_id = event['message_id']
+            timestamp = timezone.localtime(timezone.now()).strftime("%b %d, %Y %H:%M")
+            print('chat_message single id: ', message_id)
 
-    #async def delete_message(self, event):
-     #   message_id = event['message_id']
-        
-        # Send the deletion event to all clients in the group
-      #  await self.send(text_data=json.dumps({
-       #     'type': 'delete',
-        #    'message_id': message_id
-        #}))
-        #print(f"Message with id {message_id} deleted.")
+            await self.send(text_data=json.dumps({
+                "message": message,
+                "username": username,
+                "timestamp": timestamp,
+                "message_id": message_id
+            }))
 
-    database_sync_to_async
+    @database_sync_to_async
     def delete_message(self, message_id):
         try:
             message = Message.objects.get(id=message_id)
@@ -155,15 +153,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         room = Room.objects.get(name=room_name)
         chat_message = Message.objects.create(room=room, username=username, message=message)
         return chat_message
-
-    @database_sync_to_async
-    def delete_message(self, message_id):
-        try:
-            message = Message.objects.get(id=message_id)
-            message.delete()
-        except Message.DoesNotExist:
-            print(f"Message with id {message_id} does not exist.")
-
 
 class DirectMessageConsumer(AsyncWebsocketConsumer):
     async def connect(self):

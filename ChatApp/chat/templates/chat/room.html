@@ -90,7 +90,9 @@
             chatSocket.onmessage = function(e) {
                 const data = JSON.parse(e.data);
                 // Check if messages are present
+                console.log(data)
                 if (data.messages) {
+                    console.log('onmessage data.messages')
                     // Clear existing messages before appending new ones (when a message is deleted, we reload with the remaining messages)
                     document.getElementById('chat-log').innerHTML = '';  // Set innerHTML to empty string to clear all children
 
@@ -98,9 +100,8 @@
                         const { username, message, timestamp, message_id } = msg;
                         appendMessage(username, message, timestamp, message_id);
                     });
-                } else if (data.type === 'delete') {
-                    handleDeleteNotification(data.message_id);
                 } else {
+                    console.log('onmessage appendMessage')
                     const { username = "Unknown User", message = "No message", timestamp = "Unknown time", message_id } = data;
                     appendMessage(username, message, timestamp, message_id);
                 }
