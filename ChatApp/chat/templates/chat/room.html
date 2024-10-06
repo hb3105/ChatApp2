@@ -99,10 +99,18 @@
                         const { username, message, timestamp, message_id } = msg;
                         appendMessage(username, message, timestamp, message_id);
                     });
+
+                    // Show notification for new message
+                    showNotification("", "a message is deleted");
+
                 } else {
                     console.log('onmessage appendMessage for a single message')
                     const { username = "Unknown User", message = "No message", timestamp = "Unknown time", message_id } = data;
+                    
                     appendMessage(username, message, timestamp, message_id);
+                    
+                    // Show notification for new message
+                    showNotification(username, message);
                 }
             };
 
@@ -131,9 +139,6 @@
 
             document.getElementById('chat-log').appendChild(messageTemplate);
             scrollToBottom();
-
-            // Show notification for new message
-            showNotification(username, message);
         }
 
         function showNotification(username, message) {

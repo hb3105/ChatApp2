@@ -132,18 +132,3 @@ def handle_unknown_url(request, any_path):
     if any_path == "dashboard":
         # Handle the dashboard URL specifically
         return redirect('users:dashboard')
-
-@login_required
-def delete_message(request, message_id):
-    # Check if the user is a Pro user and owns the message or has the right to delete it
-    if request.user.user_type == 'pro':  # Assuming you have this method on the user model
-        # Get the message to be deleted
-        message = get_object_or_404(Message, id=message_id)
-        message.delete()
-        # redirect the user to the newly created room/group
-        room_url = reverse('chat:room') + f'?room_name={message.room.name}'
-        return redirect(room_url)
-    else:    
-        # redirect the user to the newly created room/group
-        room_url = reverse('chat:room') + f'?room_name={message.room.name}'
-        return redirect(room_url)

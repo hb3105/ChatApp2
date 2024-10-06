@@ -78,16 +78,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             print(f"Error in receive: {e}")
     
-    # Add a new method to handle notifications
-    async def notification(self, event):
-        notification_message = event['message']
-
-        # Send the notification to all clients in the group
-        await self.send(text_data=json.dumps({
-            'type': 'notification',
-            'message': notification_message,
-        }))
-
     # Receive message from room group
     async def chat_message(self, event):
         if 'messages' in event:
@@ -103,6 +93,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             username = event["username"]
             message_id = event['message_id']
             timestamp = timezone.localtime(timezone.now()).strftime("%b %d, %Y %H:%M")
+            print('timestamp: ', timestamp)
             print('chat_message single id: ', message_id)
 
             await self.send(text_data=json.dumps({
