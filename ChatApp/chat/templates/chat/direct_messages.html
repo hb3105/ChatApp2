@@ -64,14 +64,14 @@
                 document.getElementById('message-log').innerHTML = '';  // Set innerHTML to empty string to clear all children
 
                 data.messages.forEach(msg => {
-                    const { timestamp, username, message } = msg;
-                    appendMessage(timestamp, username, message);
+                    const { timestamp, username, message, message_id } = msg;
+                    appendMessage(timestamp, username, message, message_id);
                 });
             } else {
                 console.log('onmessage appendMessage for a single message')
-                const { message = "", sender = "Unknown User", timestamp = "Unknown time" } = data;
+                const { message = "", sender = "Unknown User", timestamp = "Unknown time", message_id } = data;
                 
-                appendMessage(timestamp, sender, message);
+                appendMessage(timestamp, sender, message, message_id);
             }
         };
 
@@ -149,7 +149,8 @@
         if (messageInput) {
             chatSocket.send(JSON.stringify({
                 message: messageInput,
-                'receiver': currentReceiver
+                type:'message',
+                'receiver': currentReceiver,
             }));
             messageInputDom.value = '';
         }
