@@ -164,23 +164,11 @@
 
         function handleDeleteMessage(messageId) {
             if (confirm("Are you sure you want to delete this message?")) {
-                fetch(`/chat/delete_message/${messageId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
-                }).then(response => {
-                if (response.ok) {
-                    alert('Message deleted successfully.');
-                    // Send delete message notification via WebSocket
-                    chatSocket.send(JSON.stringify({
+                // Send a delete message through the WebSocket
+                chatSocket.send(JSON.stringify({
                     type: 'delete',
                     message_id: messageId
-                    }));
-                } else {
-                    alert('Error deleting message.');
-                }
-                });
+                }));
             }
         }
 

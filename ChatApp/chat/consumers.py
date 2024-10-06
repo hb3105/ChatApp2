@@ -57,25 +57,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         "message_id": chat_message.id  # Send the message ID
                     }
                 )
-
             elif message_type == "delete":
                 message_id = text_data_json.get("message_id")
-                if not message_id:
+                if message_id:   
+                    print(f"delete message is called for message id: {message_id}")
+                    
+                    # Delete the message
+                    await self.delete_message(message_id)
+
+                    # Retrieve updated messages and send them to the group
+                    messages = await self.get_messages(self.room_name)
+                    await self.channel_layer.group_send(
+                        self.room_group_name, {
+                            "type": "chat_message",
+                            "messages": messages
+                        }
+                    )
+                else:
                     raise ValueError("Message ID is missing for delete request")
-
-                print(f"delete message is called for message id: {message_id}")
-                # Delete the message
-                await self.delete_message(message_id)
-
-                # Retrieve updated messages and send them to the group
-                messages = await self.get_messages(self.room_name)
-                await self.channel_layer.group_send(
-                    self.room_group_name, {
-                        "type": "chat_message",
-                        "messages": messages
-                    }
-                )
-
         except Exception as e:
             print(f"Error in receive: {e}")
     
