@@ -9,7 +9,7 @@
             (Basic)<sup>*</sup>
         {% endif %}
         <br>
-        <span style="color: #999; font-size: 0.8em;"><sup>*</sup>Pro users can create groups and add users, in addition to seeing entire chat history.</span><br><br>
+        <span style="color: #999; font-size: 0.8em;"><sup>*</sup>Pro users can delete messages and see entire chat history.</span><br><br>
 
         {% if current_receiver %}
             messaging with: <b>{{ current_receiver.username|capfirst }}</b><br><br>
@@ -20,14 +20,12 @@
                     <input id="message-submit" type="button" value="Send">
                 </div>
             </div>
-
         {% endif %}
 
         <!-- Message Template -->
         <div id="message-template" style="display: none;">
-            <span class="timestamp"></span> : <b class="username"></b>: <span class="message-content"></span>
+            <span class="timestamp" style="font-style: italic; color: grey; font-size: 0.8em;"></span>  <b class="username"></b> : <span class="message-content"></span>
             <button class="delete-message-button" style="color: red; background: none; border: none; cursor: pointer;">X</button>
-            <br>
         </div>
 
         <a href="#" onclick="logout()">Logout</a>&nbsp;
@@ -67,11 +65,13 @@
                     const { timestamp, username, message, message_id } = msg;
                     appendMessage(timestamp, username, message, message_id);
                 });
+                //showNotification("", "A message is deleted")
             } else {
                 console.log('onmessage appendMessage for a single message')
                 const { message = "", sender = "Unknown User", timestamp = "Unknown time", message_id } = data;
                 
                 appendMessage(timestamp, sender, message, message_id);
+                //showNotification(sender, message)
             }
         };
 
@@ -83,7 +83,7 @@
     function appendMessage(timestamp, username, message, message_id) {
         const capitalizedUsername = username.charAt(0).toUpperCase() + username.slice(1);
         const messageTemplate = document.getElementById('message-template').cloneNode(true);
-        
+
         messageTemplate.id = '';
         messageTemplate.style.display = '';
         messageTemplate.querySelector('.timestamp').textContent = timestamp;

@@ -211,7 +211,6 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
                     # Delete the message
                     await self.delete_direct_message(message_id)
 
-                    # Retrieve updated messages and send them to the group
                     # Retrieve updated messages and send them to both sender and receiver
                     receiver = await self.get_user(self.receiver_username)
                     messages = await self.get_direct_messages(self.user, receiver)
@@ -236,7 +235,6 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
         messages = event['messages']
         print('Sending updated messages to the receiver after deletion')
         await self.send(text_data=json.dumps({"messages": messages}))
-
 
     async def send_direct_message(self, event):
         # Handle normal message broadcasting
