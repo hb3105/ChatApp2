@@ -92,8 +92,7 @@
                 // Check if messages are present
                 console.log(data)
                 if (data.messages) {
-                    console.log('onmessage data.messages')
-                    // Clear existing messages before appending new ones (when a message is deleted, we reload with the remaining messages)
+                    // Clear existing messages so when a bulk list of messages are sent, clients see only the latest messages
                     document.getElementById('chat-log').innerHTML = '';  // Set innerHTML to empty string to clear all children
 
                     data.messages.forEach(msg => {
@@ -101,7 +100,7 @@
                         appendMessage(username, message, timestamp, message_id);
                     });
                 } else {
-                    console.log('onmessage appendMessage')
+                    console.log('onmessage appendMessage for a single message')
                     const { username = "Unknown User", message = "No message", timestamp = "Unknown time", message_id } = data;
                     appendMessage(username, message, timestamp, message_id);
                 }
@@ -138,23 +137,13 @@
         }
 
         function showNotification(username, message) {
+            console.log('showNotification: ', Notification.permission)
             if (Notification.permission === 'granted') {
                 const notification = new Notification(`New message from ${username}`, {
                     body: message,
-                    icon: '/static/chat/images/icon.png' // Customize this path if needed
+                    icon: '' // Customize this path if needed
                 });
             }
-        }
-
-        function handleDeleteNotification(message_id) {
-            const messages = document.querySelectorAll('#chat-log > div'); // Adjust as needed to target messages
-            messages.forEach(msg => {
-                const deleteButton = msg.querySelector('.delete-message-button');
-                if (deleteButton && deleteButton.dataset.messageId == message_id) {
-                    msg.remove(); // Remove the message from the chat log
-                    showNotification("System", "A message has been deleted."); // Show deletion notification
-                }
-            });
         }
 
         function scrollToBottom() {
@@ -182,12 +171,14 @@
         }
         
         connectToChat();
+        
         document.querySelector('#chat-message-input').focus();
         document.querySelector('#chat-message-input').onkeyup = function(e) {
             if (e.keyCode === 13) {  // enter, return
                 document.querySelector('#chat-message-submit').click();
             }
         };
+
         document.querySelector('#chat-message-submit').onclick = function(e) {
             const messageInputDom = document.querySelector('#chat-message-input');
             var messageInput = messageInputDom.value.trim();
@@ -200,27 +191,7 @@
                 messageInputDom.value = '';
             }
         };
-
-        function handleDeleteNotification(message_id) {
-            const messages = document.querySelectorAll('#chat-log > div');
-            messages.forEach(msg => {
-                const deleteButton = msg.querySelector('.delete-message-button');
-                if (deleteButton && deleteButton.dataset.messageId == message_id) {
-                    msg.remove(); // Remove the deleted message
-                }
-            });
-
-            // Update the chat log with the updated list of messages
-            messages.forEach(msg => {
-                const { username, message, timestamp, message_id } = msg;
-                appendMessage(username, message, timestamp, message_id);
-            });
-
-            // Show notification for message deletion
-            showNotification("System", "A message has been deleted.");
-        }
-    </script>
-    <script>
+        
         function logout() {
             // Create a form element
             var form = document.createElement('form');
