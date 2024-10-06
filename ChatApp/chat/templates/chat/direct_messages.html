@@ -50,7 +50,7 @@
     function connectToChat() {
         if(!chatSocket) {
             chatSocket = new WebSocket(
-                'ws://' + window.location.host + '/ws/direct_messages/' + receiver + '/'
+                'ws://' + window.location.host + '/ws/direct_messages/' + currentReceiver + '/'
             );
         }
 
@@ -81,11 +81,13 @@
     }
     
     function appendMessage(timestamp, username, message, message_id) {
+        const capitalizedUsername = username.charAt(0).toUpperCase() + username.slice(1);
         const messageTemplate = document.getElementById('message-template').cloneNode(true);
+        
         messageTemplate.id = '';
         messageTemplate.style.display = '';
         messageTemplate.querySelector('.timestamp').textContent = timestamp;
-        messageTemplate.querySelector('.username').textContent = username;
+        messageTemplate.querySelector('.username').textContent = capitalizedUsername;
         messageTemplate.querySelector('.message-content').textContent = message;
 
         if ('{{ user.user_type }}' === 'pro') {
