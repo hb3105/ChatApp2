@@ -172,7 +172,7 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
         # Save the message to the database
         receiver = await self.get_user(receiver_username)
         if receiver:
-            await self.save_direct_message(self.user, receiver, message)
+            direct_message = await self.save_direct_message(self.user, receiver, message)
 
             # Send the message to the receiver's group
             await self.channel_layer.group_send(
@@ -180,7 +180,7 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
                 {
                     'type': 'send_direct_message',
                     'message': message,
-                    'sender': self.user.username,
+                    'sender': self.user.username
                 }
             )
 
@@ -190,7 +190,7 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
                 {
                     'type': 'send_direct_message',
                     'message': message,
-                    'sender': self.user.username,
+                    'sender': self.user.username
                 }
             )
 

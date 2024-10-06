@@ -13,17 +13,19 @@
 
         {% if current_receiver %}
             messaging with: <b>{{ current_receiver.username|capfirst }}</b><br><br>
-        
-            <textarea id="message-log" cols="70" rows="20" readonly></textarea><br>
-            <div class="message-input-container">
-                <input id="message-input" type="text" size="50" placeholder="Type your message...">
-                <input id="message-submit" type="button" value="Send">
+            <div>
+                <div id="message-log" style="border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto;"></div><br>
+                <div class="message-input-container">
+                    <input id="message-input" type="text" size="50">
+                    <input id="message-submit" type="button" value="Send">
+                </div>
             </div>
+
         {% endif %}
 
         <!-- Message Template -->
         <div id="message-template" style="display: none;">
-            <span class="timestamp"></span> | <b class="username"></b>: <span class="message-content"></span>
+            <span class="timestamp"></span> : <b class="username"></b>: <span class="message-content"></span>
             <button class="delete-message-button" style="color: red; background: none; border: none; cursor: pointer;">X</button>
             <br>
         </div>
@@ -42,32 +44,97 @@
 
     // WebSocket connection
     const receiver = '{{ current_receiver.username }}'; // Make sure this is set correctly in your template
-    const chatSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/direct_messages/' + receiver + '/'
-    );
 
-
-    chatSocket.onmessage = function(e) {
-        const data = JSON.parse(e.data);
-        console.log(data.messages)
-        if (data.messages) {
-                data.messages.forEach(message => {
-                    const { timestamp, username, message: messageText } = message;
-                    const capitalizedUsername = username.charAt(0).toUpperCase() + username.slice(1);
-                    messageLog.value += `${timestamp} ${capitalizedUsername}: ${messageText}\n`;
-                });
+    let chatSocket = null;  // Store the WebSocket connection reference
+    
+    function connectToChat() {
+        if(!chatSocket) {
+            chatSocket = new WebSocket(
+                'ws://' + window.location.host + '/ws/direct_messages/' + receiver + '/'
+            );
         }
-        else {
-            const { message, sender, timestamp } = data;
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            console.log(data.messages)
+            // Check if messages are present
             console.log(data)
-            const capitalizedSender = sender.charAt(0).toUpperCase() + sender.slice(1);
-            messageLog.value += `${timestamp} ${capitalizedSender}: ${message}\n`;
-        }
-    };
+            if (data.messages) {
+                // Clear existing messages so when a bulk list of messages are sent, clients see only the latest messages
+                document.getElementById('message-log').innerHTML = '';  // Set innerHTML to empty string to clear all children
 
-    chatSocket.onclose = function(e) {
-        console.error('Chat socket closed unexpectedly');
-    };
+                data.messages.forEach(msg => {
+                    const { timestamp, username, message } = msg;
+                    appendMessage(timestamp, username, message);
+                });
+            } else {
+                console.log('onmessage appendMessage for a single message')
+                const { message = "", sender = "Unknown User", timestamp = "Unknown time" } = data;
+                
+                appendMessage(timestamp, sender, message);
+            }
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+    }
+    
+    function appendMessage(timestamp, username, message, message_id) {
+        const messageTemplate = document.getElementById('message-template').cloneNode(true);
+        messageTemplate.id = '';
+        messageTemplate.style.display = '';
+        messageTemplate.querySelector('.timestamp').textContent = timestamp;
+        messageTemplate.querySelector('.username').textContent = username;
+        messageTemplate.querySelector('.message-content').textContent = message;
+
+        if ('{{ user.user_type }}' === 'pro') {
+            const deleteButton = messageTemplate.querySelector('.delete-message-button');
+            deleteButton.dataset.messageId = message_id;
+            deleteButton.addEventListener('click', () => handleDeleteMessage(message_id));
+        } else {
+            messageTemplate.querySelector('.delete-message-button').remove();
+        }
+
+        document.getElementById('message-log').appendChild(messageTemplate);
+        scrollToBottom();
+    }
+
+    function showNotification(username, message) {
+        console.log('showNotification: ', Notification.permission)
+        if (Notification.permission === 'granted') {
+            const notification = new Notification(`New message from ${username}`, {
+                body: message,
+                icon: '' // Customize this path if needed
+            });
+        }
+    }
+
+    // Request notification permission
+    if (Notification.permission === 'default') {
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                console.log('Notification permission granted.');
+            }
+        });
+    }
+
+    function scrollToBottom() {
+        const chatLog = document.getElementById('message-log');
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function handleDeleteMessage(messageId) {
+        if (confirm("Are you sure you want to delete this message?")) {
+            // Send a delete message through the WebSocket
+            chatSocket.send(JSON.stringify({
+                type: 'delete',
+                message_id: messageId
+            }));
+        }
+    }
+
+    connectToChat();
 
     document.querySelector('#message-input').focus();
     document.querySelector('#message-input').onkeyup = function(e) {
@@ -78,9 +145,8 @@
 
     document.querySelector('#message-submit').onclick = function(e) {
         const messageInputDom = document.querySelector('#message-input');
-
-        var messageInput = messageInputDom.value.trim();  // remove leading or trailing whitespaces
-        if (messageInput) {  // Only send message if there's valid input
+        var messageInput = messageInputDom.value.trim();
+        if (messageInput) {
             chatSocket.send(JSON.stringify({
                 message: messageInput,
                 'receiver': currentReceiver
@@ -88,8 +154,7 @@
             messageInputDom.value = '';
         }
     };
-</script>
-<script>
+
     function logout() {
         // Create a form element
         var form = document.createElement('form');
