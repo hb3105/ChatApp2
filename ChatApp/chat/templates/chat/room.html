@@ -53,8 +53,21 @@
             <div id="chat-log" style="border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto;"></div><br>
             <div class="chat-input-container">
                 <input id="chat-message-input" type="text" size="50">
+                <button id="emoji-button" style="font-size: 1.5em;">😊</button>      
                 <input id="chat-message-submit" type="button" value="Send">
             </div>
+        </div>
+        <div id="emoji-picker" style="display: none; border: 1px solid #ccc; padding: 10px; position: absolute; background: white; z-index: 10;">
+            <span class="emoji" data-emoji="😀">😀</span>
+            <span class="emoji" data-emoji="😂">😂</span>
+            <span class="emoji" data-emoji="❤️">❤️</span>
+            <span class="emoji" data-emoji="👍">👍</span>
+            <span class="emoji" data-emoji="🎉">🎉</span>
+            <span class="emoji" data-emoji="😎">😎</span>
+            <span class="emoji" data-emoji="🥳">🥳</span>
+            <span class="emoji" data-emoji="😢">😢</span>
+            <span class="emoji" data-emoji="🔥">🔥</span>
+            <span class="emoji" data-emoji="🎈">🎈</span>
         </div>
 
         {{ room_name|json_script:"room-name" }}
@@ -221,6 +234,31 @@
         function confirmDelete() {
             return confirm("Are you sure you want to remove this user from the group?");
         }
+
+            //emoji picker
+        document.getElementById('emoji-button').onclick = function() {
+            const emojiPicker = document.getElementById('emoji-picker');
+            emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
+        };
+
+        document.querySelectorAll('.emoji').forEach(function(emoji) {
+            emoji.onclick = function() {
+                const emojiValue = emoji.getAttribute('data-emoji');
+                const chatInput = document.getElementById('chat-message-input');
+                chatInput.value += emojiValue;  // Append the selected emoji to the input
+                chatInput.focus();  // Refocus on the input field
+                document.getElementById('emoji-picker').style.display = 'none';  // Hide the picker after selection
+            };
+        });
+
+        // Close the emoji picker if clicking outside of it
+        document.addEventListener('click', function(event) {
+            const emojiPicker = document.getElementById('emoji-picker');
+            const emojiButton = document.getElementById('emoji-button');
+            if (!emojiPicker.contains(event.target) && event.target !== emojiButton) {
+                emojiPicker.style.display = 'none';
+            }
+        });
     </script>
     
 {% endblock %}
