@@ -22,16 +22,9 @@
                 </div>
             </div>
             <div id="emoji-picker" style="display: none; border: 1px solid #ccc; padding: 10px; position: absolute; background: white; z-index: 10;">
-                <span class="emoji" data-emoji="😀">😀</span>
-                <span class="emoji" data-emoji="😂">😂</span>
-                <span class="emoji" data-emoji="❤️">❤️</span>
-                <span class="emoji" data-emoji="👍">👍</span>
-                <span class="emoji" data-emoji="🎉">🎉</span>
-                <span class="emoji" data-emoji="😎">😎</span>
-                <span class="emoji" data-emoji="🥳">🥳</span>
-                <span class="emoji" data-emoji="😢">😢</span>
-                <span class="emoji" data-emoji="🔥">🔥</span>
-                <span class="emoji" data-emoji="🎈">🎈</span>
+                {% for emoji in emoji_list %}
+                    <span class="emoji" data-emoji="{{ emoji }}">{{ emoji }}</span>
+                {% endfor %}
             </div>
         {% endif %}
 

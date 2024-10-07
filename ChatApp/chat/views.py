@@ -93,10 +93,13 @@ def direct_messages(request):
         Q(sender=request.user, receiver=receiver) | Q(receiver=request.user, sender=receiver)
     ).order_by('timestamp') if receiver else []
 
+    emoji_list = ['😀', '😂', '❤️', '👍', '🎉', '😎', '🥳', '😢', '🔥', '🎈']
+
     return render(request, "chat/direct_messages.html", {
         "messages": messages,
         "users": users,
-        "current_receiver": receiver
+        "current_receiver": receiver,
+        'emoji_list': emoji_list,
     })
 
 def handle_unknown_url(request, any_path):
