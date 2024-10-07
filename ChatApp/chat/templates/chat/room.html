@@ -80,60 +80,39 @@
     <script>
         const roomName = JSON.parse(document.getElementById('room-name').textContent);
         let chatSocket = null;  // Store the WebSocket connection reference
-
+    
         function connectToChat() {
-            if(!chatSocket) {
-                chatSocket = new WebSocket(
-                    'ws://'
-                    + window.location.host
-                    + '/ws/chat/'
-                    + roomName
-                    + '/'
-                );
+            if (!chatSocket) {
+                chatSocket = new WebSocket(`ws://${window.location.host}/ws/chat/${roomName}/`);
+    
+                chatSocket.onmessage = handleSocketMessage;
+                chatSocket.onclose = handleSocketClose;
             }
-
-            chatSocket.onmessage = function(e) {
-                const data = JSON.parse(e.data);
-                // Check if messages are present
-                console.log(data)
-                if (data.messages) {
-                    // Clear existing messages so when a bulk list of messages are sent, clients see only the latest messages
-                    document.getElementById('chat-log').innerHTML = '';  // Set innerHTML to empty string to clear all children
-
-                    data.messages.forEach(msg => {
-                        const { username, message, timestamp, message_id } = msg;
-                        appendMessage(username, message, timestamp, message_id);
-                    });
-
-                    // Show notification for new message
-                    showNotification("", "a message is deleted");
-
-                } else {
-                    console.log('onmessage appendMessage for a single message')
-                    const { username = "Unknown User", message = "No message", timestamp = "Unknown time", message_id } = data;
-                    
-                    appendMessage(username, message, timestamp, message_id);
-                    
-                    // Show notification for new message
-                    showNotification(username, message);
-                }
-            };
-
-            chatSocket.onclose = function(e) {
-                console.error('Chat socket closed. Reconnecting...');
-                chatSocket = null;  // Clear the reference
-                setTimeout(connectToChat, 2000); // Reconnect after 2 seconds
-            };
         }
-
-        function appendMessage(username, message, timestamp, message_id) {
+    
+        function handleSocketMessage(e) {
+            const data = JSON.parse(e.data);
+            if (data.messages) {
+                updateChatLog(data.messages);
+            } else {
+                appendMessage(data);
+            }
+        }
+    
+        function updateChatLog(messages) {
+            const chatLog = document.getElementById('chat-log');
+            chatLog.innerHTML = '';  // Clear existing messages
+            messages.forEach(appendMessage);
+        }
+    
+        function appendMessage({ username = "Unknown User", message = "No message", timestamp = "Unknown time", message_id }) {
             const messageTemplate = document.getElementById('message-template').cloneNode(true);
             messageTemplate.id = '';
             messageTemplate.style.display = '';
             messageTemplate.querySelector('.timestamp').textContent = timestamp;
             messageTemplate.querySelector('.username').textContent = username;
             messageTemplate.querySelector('.message-content').textContent = message;
-
+    
             if ('{{ user.user_type }}' === 'pro') {
                 const deleteButton = messageTemplate.querySelector('.delete-message-button');
                 deleteButton.dataset.messageId = message_id;
@@ -141,21 +120,24 @@
             } else {
                 messageTemplate.querySelector('.delete-message-button').remove();
             }
-
+    
             document.getElementById('chat-log').appendChild(messageTemplate);
             scrollToBottom();
+            showNotification(username, message);
         }
-
+    
+        function handleSocketClose() {
+            console.error('Chat socket closed. Reconnecting...');
+            chatSocket = null;  // Clear the reference
+            setTimeout(connectToChat, 2000); // Reconnect after 2 seconds
+        }
+    
         function showNotification(username, message) {
-            console.log('showNotification: ', Notification.permission)
             if (Notification.permission === 'granted') {
-                const notification = new Notification(`New message from ${username}`, {
-                    body: message,
-                    icon: '' // Customize this path if needed
-                });
+                new Notification(`New message from ${username}`, { body: message });
             }
         }
-
+    
         // Request notification permission
         if (Notification.permission === 'default') {
             Notification.requestPermission().then(permission => {
@@ -164,111 +146,94 @@
                 }
             });
         }
-
+    
         function scrollToBottom() {
             const chatLog = document.getElementById('chat-log');
             chatLog.scrollTop = chatLog.scrollHeight;
         }
-
+    
         function handleDeleteMessage(messageId) {
             if (confirm("Are you sure you want to delete this message?")) {
-                // Send a delete message through the WebSocket
-                chatSocket.send(JSON.stringify({
-                    type: 'delete',
-                    message_id: messageId
-                }));
+                chatSocket.send(JSON.stringify({ type: 'delete', message_id: messageId }));
             }
         }
-
+    
         connectToChat();
-        
-        document.querySelector('#chat-message-input').focus();
-        document.querySelector('#chat-message-input').onkeyup = function(e) {
-            if (e.keyCode === 13) {  // enter, return
+    
+        const chatInput = document.querySelector('#chat-message-input');
+        chatInput.focus();
+        chatInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
                 document.querySelector('#chat-message-submit').click();
             }
-        };
-
-        document.querySelector('#chat-message-submit').onclick = function(e) {
-            const messageInputDom = document.querySelector('#chat-message-input');
-            var messageInput = messageInputDom.value.trim();
+        });
+    
+        document.querySelector('#chat-message-submit').addEventListener('click', () => {
+            const messageInput = chatInput.value.trim();
             if (messageInput) {
                 chatSocket.send(JSON.stringify({
                     message: messageInput,
                     username: '{{ request.user.username|capfirst }}',
                     type: 'message',
                 }));
-                messageInputDom.value = '';
+                chatInput.value = '';
             }
-        };
-        
+        });
+    
+        // Emoji picker
+        const emojiButton = document.getElementById('emoji-button');
+        const emojiPicker = document.getElementById('emoji-picker');
+    
+        emojiButton.addEventListener('click', () => {
+            emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
+        });
+    
+        document.querySelectorAll('.emoji').forEach(emoji => {
+            emoji.addEventListener('click', () => {
+                chatInput.value += emoji.getAttribute('data-emoji');
+                chatInput.focus();
+                emojiPicker.style.display = 'none';
+            });
+        });
+    
+        // Close the emoji picker if clicking outside of it
+        document.addEventListener('click', (event) => {
+            if (!emojiPicker.contains(event.target) && event.target !== emojiButton) {
+                emojiPicker.style.display = 'none';
+            }
+        });
+    
+        const participantList = document.getElementById('participant-list');
+        participantList.addEventListener('mouseover', (event) => {
+            const liElement = event.target.closest('li');
+            const form = liElement.querySelector('.remove-user-form');
+            if (form) form.style.display = 'block';
+        });
+    
+        participantList.addEventListener('mouseout', (event) => {
+            const liElement = event.target.closest('li');
+            const form = liElement.querySelector('.remove-user-form');
+            if (form) form.style.display = 'none';
+        });
+    
         function logout() {
-            // Create a form element
-            var form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{% url "users:logout" %}';
-        
-            // Create a hidden input field for the CSRF token
-            var csrfTokenInput = document.createElement('input');
-            csrfTokenInput.type = 'hidden';
-            csrfTokenInput.name = 'csrfmiddlewaretoken';
-            csrfTokenInput.value = '{{ csrf_token }}';
-        
-            // Append the CSRF token input to the form
-            form.appendChild(csrfTokenInput);
-        
-            // Append the form to the document body
-            document.body.appendChild(form);
-        
-            // Submit the form
-            form.submit();
+            if (confirm("Are you sure you want to log out?")) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{% url "users:logout" %}';
+                const csrfTokenInput = document.createElement('input');
+                csrfTokenInput.type = 'hidden';
+                csrfTokenInput.name = 'csrfmiddlewaretoken';
+                csrfTokenInput.value = '{{ csrf_token }}';
+                form.appendChild(csrfTokenInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
         }
     
         function confirmDelete() {
             return confirm("Are you sure you want to remove this user from the group?");
         }
-
-            //emoji picker
-        document.getElementById('emoji-button').onclick = function() {
-            const emojiPicker = document.getElementById('emoji-picker');
-            emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
-        };
-
-        document.querySelectorAll('.emoji').forEach(function(emoji) {
-            emoji.onclick = function() {
-                const emojiValue = emoji.getAttribute('data-emoji');
-                const chatInput = document.getElementById('chat-message-input');
-                chatInput.value += emojiValue;  // Append the selected emoji to the input
-                chatInput.focus();  // Refocus on the input field
-                document.getElementById('emoji-picker').style.display = 'none';  // Hide the picker after selection
-            };
-        });
-
-        // Close the emoji picker if clicking outside of it
-        document.addEventListener('click', function(event) {
-            const emojiPicker = document.getElementById('emoji-picker');
-            const emojiButton = document.getElementById('emoji-button');
-            if (!emojiPicker.contains(event.target) && event.target !== emojiButton) {
-                emojiPicker.style.display = 'none';
-            }
-        });
-
-        const participantList = document.getElementById('participant-list');
-            participantList.addEventListener('mouseover', (event) => {
-            const liElement = event.target.closest('li');
-            const form = liElement.querySelector('.remove-user-form');
-            if (form) {
-                form.style.display = 'block';
-            }
-            });
-        
-        participantList.addEventListener('mouseout', (event) => {
-            const liElement = event.target.closest('li');
-            const form = liElement.querySelector('.remove-user-form');
-            if (form) {
-                form.style.display = 'none';
-            }
-            });
-    </script>
+    </script>    
     
 {% endblock %}

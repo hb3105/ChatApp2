@@ -12,7 +12,8 @@
     {% endif %}
 
     {% if user.is_authenticated %}
-        <b>My Groups</b>
+        <h2>My Groups</h2>
+        <p>Total Groups: {{ rooms.count }}</p>
         <ul id="room-list">
             {% for room in rooms %}
                 <li>
@@ -20,7 +21,7 @@
                     {% if user.user_type == 'pro' %} 
                         <form action="{% url 'chat:remove_room' room.name %}" method="POST" style="display:inline;" onsubmit="return confirmDelete();">
                             {% csrf_token %}
-                            <input type="submit" value="X" style="color: red; background: none; border: none; cursor: pointer; font-size: 12px;">
+                            <button type="submit" style="color: red; background: none; border: none; cursor: pointer; font-size: 12px;">X</button>
                         </form>
                     {% endif %}
                 </li>
@@ -29,13 +30,14 @@
             {% endfor %}
         </ul>
 
-        {% if user.user_type == 'pro' %}  
-        <b>Create a new group</b>
-        <form id="create-room-form" method="POST">
+        {% if user.user_type == 'pro' %}
+        <h3>Create a new group</h3>
+        <form id="create-room-form" method="POST" onsubmit="return validateRoomName();">
             {% csrf_token %}
-            <input id="room-name-input" name="room_name" type="text" size="30" required>
-            <input id="room-name-submit" type="submit" value="Enter"> <br>
-        </form>
+            <input id="room-name-input" name="room_name" type="text" size="30" required placeholder="Enter group name">
+            <button id="room-name-submit" type="submit">Enter</button>
+            <div id="room-name-error" style="color: red; display: none;"></div>
+        </form><br>
         {% endif %}
         
         <a href="#" onclick="logout()">Logout</a>&nbsp;
@@ -48,6 +50,7 @@
     <script>
         const roomInput = document.querySelector('#room-name-input');
         const submitButton = document.querySelector('#room-name-submit');
+        const errorMessage = document.querySelector('#room-name-error');
 
         roomInput.focus();
 
@@ -56,49 +59,34 @@
             submitButton.disabled = roomName === '';
         };
 
-        roomInput.onkeyup = function(e) {
-            if (e.keyCode === 13 && !submitButton.disabled) {  // enter, return
-                submitButton.click();
-            }
-        };
-
-        submitButton.onclick = function() {
+        function validateRoomName() {
             const roomName = roomInput.value.trim();
-            console.log('Redirecting to room:', roomName);
-            if (roomName) {
-                const searchParams = new URLSearchParams(window.location.search);
-                searchParams.set('room_name', roomName);
-                window.location.href = `/chat/?${searchParams.toString()}`;
+            if (!roomName) {
+                errorMessage.textContent = "Room name cannot be empty.";
+                errorMessage.style.display = "block";
+                return false;
             }
-        };
-    </script>
-
-    <script>
-        function logout() {
-            // Create a form element
-            var form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{% url "users:logout" %}';
-        
-            // Create a hidden input field for the CSRF token
-            var csrfTokenInput = document.createElement('input');
-            csrfTokenInput.type = 'hidden';
-            csrfTokenInput.name = 'csrfmiddlewaretoken';
-            csrfTokenInput.value = '{{ csrf_token }}';
-        
-            // Append the CSRF token input to the form
-            form.appendChild(csrfTokenInput);
-        
-            // Append the form to the document body
-            document.body.appendChild(form);
-        
-            // Submit the form
-            form.submit();
+            // Add additional validation logic here (e.g., check for existing room)
+            return true;
         }
-    </script>
-    <script>
+
+        function logout() {
+            if (confirm("Are you sure you want to log out?")) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{% url "users:logout" %}';
+                const csrfTokenInput = document.createElement('input');
+                csrfTokenInput.type = 'hidden';
+                csrfTokenInput.name = 'csrfmiddlewaretoken';
+                csrfTokenInput.value = '{{ csrf_token }}';
+                form.appendChild(csrfTokenInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
         function confirmDelete() {
-            return confirm("Are you sure you want to delete this room? This action cannot be undone.");
+            return confirm("Are you sure you want to delete this group? This action cannot be undone.");
         }
     </script>
 {% endblock %}
