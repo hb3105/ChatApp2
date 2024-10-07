@@ -188,11 +188,16 @@
             emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
         });
     
+        // Close the emoji picker when typing
+        chatInput.addEventListener('input', () => {
+            emojiPicker.style.display = 'none';
+        });
+
         document.querySelectorAll('.emoji').forEach(emoji => {
             emoji.addEventListener('click', () => {
                 chatInput.value += emoji.getAttribute('data-emoji');
-                chatInput.focus();
-                emojiPicker.style.display = 'none';
+                chatInput.focus(); // Keep focus on the input
+                // Don't close the emoji picker
             });
         });
     
