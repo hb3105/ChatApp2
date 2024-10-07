@@ -56,10 +56,12 @@ def room(request):
 
             # Get all users in the group except the current user
             participants = room.users.all().exclude(username=request.user.username)  
+            emoji_list = ['😀', '😂', '❤️', '👍', '🎉', '😎', '🥳', '😢', '🔥', '🎈']
 
             return render(request, "chat/room.html", {
                 "room_name": room_name,
                 "participants": participants,
+                'emoji_list': emoji_list,
             })
         except Room.DoesNotExist:
             messages.error(request, f"Room '{room_name}' does not exist.")

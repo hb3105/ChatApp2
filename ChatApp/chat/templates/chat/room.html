@@ -58,16 +58,9 @@
             </div>
         </div>
         <div id="emoji-picker" style="display: none; border: 1px solid #ccc; padding: 10px; position: absolute; background: white; z-index: 10;">
-            <span class="emoji" data-emoji="😀">😀</span>
-            <span class="emoji" data-emoji="😂">😂</span>
-            <span class="emoji" data-emoji="❤️">❤️</span>
-            <span class="emoji" data-emoji="👍">👍</span>
-            <span class="emoji" data-emoji="🎉">🎉</span>
-            <span class="emoji" data-emoji="😎">😎</span>
-            <span class="emoji" data-emoji="🥳">🥳</span>
-            <span class="emoji" data-emoji="😢">😢</span>
-            <span class="emoji" data-emoji="🔥">🔥</span>
-            <span class="emoji" data-emoji="🎈">🎈</span>
+            {% for emoji in emoji_list %}
+                <span class="emoji" data-emoji="{{ emoji }}">{{ emoji }}</span>
+            {% endfor %}
         </div>
 
         {{ room_name|json_script:"room-name" }}
@@ -259,6 +252,23 @@
                 emojiPicker.style.display = 'none';
             }
         });
+
+        const participantList = document.getElementById('participant-list');
+            participantList.addEventListener('mouseover', (event) => {
+            const liElement = event.target.closest('li');
+            const form = liElement.querySelector('.remove-user-form');
+            if (form) {
+                form.style.display = 'block';
+            }
+            });
+        
+        participantList.addEventListener('mouseout', (event) => {
+            const liElement = event.target.closest('li');
+            const form = liElement.querySelector('.remove-user-form');
+            if (form) {
+                form.style.display = 'none';
+            }
+            });
     </script>
     
 {% endblock %}
