@@ -109,12 +109,9 @@
     }
 
     function showNotification(username, message) {
-        console.log('showNotification: ', Notification.permission)
         if (Notification.permission === 'granted') {
-            const notification = new Notification(`New message from ${username}`, {
-                body: message,
-                icon: '' // Customize this path if needed
-            });
+            if(username) //  show notification only if username is present
+                new Notification(`New message from ${username}`, { body: message });
         }
     }
 

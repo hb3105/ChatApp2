@@ -134,7 +134,8 @@
     
         function showNotification(username, message) {
             if (Notification.permission === 'granted') {
-                new Notification(`New message from ${username}`, { body: message });
+                if(username) //  show notification only if username is present
+                    new Notification(`New message from ${username}`, { body: message });
             }
         }
     

@@ -12,4 +12,7 @@ urlpatterns = [
     path("dashboard/", views.dashboard, name="dashboard"),
     path("register/", views.register, name="register"),
     path('search/', views.search_users, name='search_users'),
+
+    # Optional catch-all
+    path("<str:any_path>", views.handle_unknown_url, name="catch-all"), 
 ]

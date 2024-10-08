@@ -36,3 +36,6 @@ def search_users(request):
         users = []  # Empty list if no query
     context = {'users': users, 'query': query}
     return render(request, 'users/search_users.html', context)
+
+def handle_unknown_url(request, any_path):
+    return redirect('users:dashboard')

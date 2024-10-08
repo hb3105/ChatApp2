@@ -24,8 +24,13 @@ def index(request):
     return render(request, "chat/index.html", {"rooms": rooms})
 
 def remove_room(request, room_name):
-    room = get_object_or_404(Room, name=room_name)
-
+    room_name = request.GET.get('room_name')
+    try:
+        room = Room.objects.get(name=room_name)
+    except Room.DoesNotExist:
+        messages.error(request, "Room does not exist.")
+        return redirect('chat:index')
+    
     if request.method == 'POST' and is_pro_user(request.user):
         room.delete()
         messages.success(request, f"{room_name} has been removed.")
@@ -36,7 +41,11 @@ def remove_room(request, room_name):
 
 def room(request):
     room_name = request.GET.get('room_name')
-    room = get_object_or_404(Room, name=room_name)
+    try:
+        room = Room.objects.get(name=room_name)
+    except Room.DoesNotExist:
+        messages.error(request, f"{room_name} does not exist.")
+        return redirect('chat:index')
 
     if request.user not in room.users.all():
         messages.error(request, "You do not have access to this room.")
@@ -52,7 +61,12 @@ def room(request):
     })
 
 def remove_user_from_room(request, room_name, username):
-    room = get_object_or_404(Room, name=room_name)
+    try:
+        room = Room.objects.get(name=room_name)
+    except Room.DoesNotExist:
+        messages.error(request, "Room does not exist.")
+        return redirect('chat:index')
+    
     user_to_remove = get_object_or_404(User, username=username)
 
     if request.method == 'POST' and is_pro_user(request.user):
@@ -67,7 +81,11 @@ def remove_user_from_room(request, room_name, username):
     return redirect(reverse('chat:room') + f'?room_name={room_name}')
 
 def invite_to_room(request, room_name):
-    room = get_object_or_404(Room, name=room_name)
+    try:
+        room = Room.objects.get(name=room_name)
+    except Room.DoesNotExist:
+        messages.error(request, "Room does not exist.")
+        return redirect('chat:index')
   
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -107,5 +125,4 @@ def direct_messages(request):
     })
 
 def handle_unknown_url(request, any_path):
-    if any_path == "dashboard":
-        return redirect('users:dashboard')
+    return redirect('users:dashboard')
