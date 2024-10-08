@@ -65,8 +65,10 @@
     function handleSocketMessage(e) {
         const data = JSON.parse(e.data);
         if (data.messages) {
+            console.log(data.messages)
             updateChatLog(data.messages);
         } else {
+            console.log(data)
             appendMessage(data);
         }
     }
@@ -81,7 +83,7 @@
         messageTemplate.id = '';
         messageTemplate.style.display = '';
         messageTemplate.querySelector('.timestamp').textContent = timestamp;
-        messageTemplate.querySelector('.username').textContent = username;
+        messageTemplate.querySelector('.username').textContent = username.charAt(0).toUpperCase() + username.slice(1);;
         messageTemplate.querySelector('.message-content').textContent = message;
 
         if ('{{ user.user_type }}' === 'pro') {
@@ -100,7 +102,7 @@
     function handleSocketClose() {
         console.error('Chat socket closed. Reconnecting...');
         chatSocket = null;  // Clear the reference
-        setTimeout(connectToChat, 2000); // Reconnect after 2 seconds
+        setTimeout(connectToWebSocket, 2000); // Reconnect after 2 seconds
     }
 
     function showNotification(username, message) {

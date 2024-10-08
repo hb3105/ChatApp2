@@ -162,7 +162,7 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
                 {
                     'type': 'send_direct_message',
                     'message': message,
-                    'sender': self.user.username,
+                    'username': self.user.username,
                     'message_id': direct_message.id
                 }
             )
@@ -171,7 +171,7 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
                 {
                     'type': 'send_direct_message',
                     'message': message,
-                    'sender': self.user.username,
+                    'username': self.user.username,
                     'message_id': direct_message.id
                 }
             )
@@ -197,7 +197,7 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
     async def send_direct_message(self, event):
         await self.send(text_data=json.dumps({
             "message": event["message"],
-            "sender": event["sender"],
+            "username": event["username"],
             "timestamp": self.get_current_timestamp(),
             "message_id": event["message_id"]
         }))

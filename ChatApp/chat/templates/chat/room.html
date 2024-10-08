@@ -130,7 +130,7 @@
         function handleSocketClose() {
             console.error('Chat socket closed. Reconnecting...');
             chatSocket = null;  // Clear the reference
-            setTimeout(connectToChat, 2000); // Reconnect after 2 seconds
+            setTimeout(connectToWebSocket, 2000); // Reconnect after 2 seconds
         }
     
         function showNotification(username, message) {
