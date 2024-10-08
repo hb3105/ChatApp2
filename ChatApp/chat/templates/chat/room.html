@@ -79,9 +79,11 @@
 
     <script>
         const roomName = JSON.parse(document.getElementById('room-name').textContent);
+        const chatLog = document.getElementById('chat-log');
+        const chatInput = document.querySelector('#chat-message-input');
         let chatSocket = null;  // Store the WebSocket connection reference
     
-        function connectToChat() {
+        function connectToWebSocket() {
             if (!chatSocket) {
                 chatSocket = new WebSocket(`ws://${window.location.host}/ws/chat/${roomName}/`);
     
@@ -100,7 +102,6 @@
         }
     
         function updateChatLog(messages) {
-            const chatLog = document.getElementById('chat-log');
             chatLog.innerHTML = '';  // Clear existing messages
             messages.forEach(appendMessage);
         }
@@ -121,7 +122,7 @@
                 messageTemplate.querySelector('.delete-message-button').remove();
             }
     
-            document.getElementById('chat-log').appendChild(messageTemplate);
+            chatLog.appendChild(messageTemplate);
             scrollToBottom();
             showNotification(username, message);
         }
@@ -149,7 +150,6 @@
         }
     
         function scrollToBottom() {
-            const chatLog = document.getElementById('chat-log');
             chatLog.scrollTop = chatLog.scrollHeight;
         }
     
@@ -159,9 +159,8 @@
             }
         }
     
-        connectToChat();
+        connectToWebSocket();
     
-        const chatInput = document.querySelector('#chat-message-input');
         chatInput.focus();
         chatInput.addEventListener('keyup', (e) => {
             if (e.key === 'Enter') {
@@ -181,6 +180,19 @@
             }
         });
     
+        const participantList = document.getElementById('participant-list');
+        participantList.addEventListener('mouseover', (event) => {
+            const liElement = event.target.closest('li');
+            const form = liElement.querySelector('.remove-user-form');
+            if (form) form.style.display = 'block';
+        });
+    
+        participantList.addEventListener('mouseout', (event) => {
+            const liElement = event.target.closest('li');
+            const form = liElement.querySelector('.remove-user-form');
+            if (form) form.style.display = 'none';
+        });
+    
         // Emoji picker
         const emojiButton = document.getElementById('emoji-button');
         const emojiPicker = document.getElementById('emoji-picker');
@@ -198,7 +210,6 @@
             emoji.addEventListener('click', () => {
                 chatInput.value += emoji.getAttribute('data-emoji');
                 chatInput.focus(); // Keep focus on the input
-                // Don't close the emoji picker
             });
         });
     
@@ -208,20 +219,7 @@
                 emojiPicker.style.display = 'none';
             }
         });
-    
-        const participantList = document.getElementById('participant-list');
-        participantList.addEventListener('mouseover', (event) => {
-            const liElement = event.target.closest('li');
-            const form = liElement.querySelector('.remove-user-form');
-            if (form) form.style.display = 'block';
-        });
-    
-        participantList.addEventListener('mouseout', (event) => {
-            const liElement = event.target.closest('li');
-            const form = liElement.querySelector('.remove-user-form');
-            if (form) form.style.display = 'none';
-        });
-    
+
         function logout() {
             if (confirm("Are you sure you want to log out?")) {
                 const form = document.createElement('form');

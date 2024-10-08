@@ -43,7 +43,9 @@
 
 <script>
     const messageLog = document.querySelector('#message-log'); // Declare messageLog globally
+    const messageInput = document.querySelector('#message-input');
     const receiverSelect = document.querySelector('#receiver-select');
+        
     let currentReceiver = '{{ current_receiver.username }}';
 
     // WebSocket connection
@@ -51,49 +53,35 @@
 
     let chatSocket = null;  // Store the WebSocket connection reference
     
-    function connectToChat() {
+    function connectToWebSocket() {
         if(!chatSocket) {
-            chatSocket = new WebSocket(
-                'ws://' + window.location.host + '/ws/direct_messages/' + currentReceiver + '/'
-            );
+            chatSocket = new WebSocket('ws://' + window.location.host + '/ws/direct_messages/' + currentReceiver + '/');
+        
+            chatSocket.onmessage = handleSocketMessage;
+            chatSocket.onclose = handleSocketClose;
         }
-
-        chatSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            console.log(data.messages)
-            // Check if messages are present
-            console.log(data)
-            if (data.messages) {
-                // Clear existing messages so when a bulk list of messages are sent, clients see only the latest messages
-                document.getElementById('message-log').innerHTML = '';  // Set innerHTML to empty string to clear all children
-
-                data.messages.forEach(msg => {
-                    const { timestamp, username, message, message_id } = msg;
-                    appendMessage(timestamp, username, message, message_id);
-                });
-                //showNotification("", "A message is deleted")
-            } else {
-                console.log('onmessage appendMessage for a single message')
-                const { message = "", sender = "Unknown User", timestamp = "Unknown time", message_id } = data;
-                
-                appendMessage(timestamp, sender, message, message_id);
-                //showNotification(sender, message)
-            }
-        };
-
-        chatSocket.onclose = function(e) {
-            console.error('Chat socket closed unexpectedly');
-        };
     }
-    
-    function appendMessage(timestamp, username, message, message_id) {
-        const capitalizedUsername = username.charAt(0).toUpperCase() + username.slice(1);
-        const messageTemplate = document.getElementById('message-template').cloneNode(true);
 
+    function handleSocketMessage(e) {
+        const data = JSON.parse(e.data);
+        if (data.messages) {
+            updateChatLog(data.messages);
+        } else {
+            appendMessage(data);
+        }
+    }
+
+    function updateChatLog(messages) {
+        messageLog.innerHTML = '';  // Clear existing messages
+        messages.forEach(appendMessage);
+    }
+
+    function appendMessage({ username = "Unknown User", message = "No message", timestamp = "Unknown time", message_id }) {
+        const messageTemplate = document.getElementById('message-template').cloneNode(true);
         messageTemplate.id = '';
         messageTemplate.style.display = '';
         messageTemplate.querySelector('.timestamp').textContent = timestamp;
-        messageTemplate.querySelector('.username').textContent = capitalizedUsername;
+        messageTemplate.querySelector('.username').textContent = username;
         messageTemplate.querySelector('.message-content').textContent = message;
 
         if ('{{ user.user_type }}' === 'pro') {
@@ -104,8 +92,15 @@
             messageTemplate.querySelector('.delete-message-button').remove();
         }
 
-        document.getElementById('message-log').appendChild(messageTemplate);
+        messageLog.appendChild(messageTemplate);
         scrollToBottom();
+        showNotification(username, message);
+    }
+
+    function handleSocketClose() {
+        console.error('Chat socket closed. Reconnecting...');
+        chatSocket = null;  // Clear the reference
+        setTimeout(connectToChat, 2000); // Reconnect after 2 seconds
     }
 
     function showNotification(username, message) {
@@ -139,74 +134,68 @@
         }
     }
 
-    connectToChat();
+    connectToWebSocket();
 
-    document.querySelector('#message-input').focus();
-    document.querySelector('#message-input').onkeyup = function(e) {
+    messageInput.focus();
+    messageInput.onkeyup = function(e) {
         if (e.keyCode === 13) {  // enter, return
             document.querySelector('#message-submit').click();
         }
     };
 
     document.querySelector('#message-submit').onclick = function(e) {
-        const messageInputDom = document.querySelector('#message-input');
-        var messageInput = messageInputDom.value.trim();
-        if (messageInput) {
+        var chatInput = messageInput.value.trim();
+        if (chatInput) {
             chatSocket.send(JSON.stringify({
-                message: messageInput,
+                message: chatInput,
                 type:'message',
                 'receiver': currentReceiver,
             }));
-            messageInputDom.value = '';
+            messageInput.value = '';
         }
     };
 
-    function logout() {
-        // Create a form element
-        var form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '{% url "users:logout" %}';
-    
-        // Create a hidden input field for the CSRF token
-        var csrfTokenInput = document.createElement('input');
-        csrfTokenInput.type = 'hidden';
-        csrfTokenInput.name = 'csrfmiddlewaretoken';
-        csrfTokenInput.value = '{{ csrf_token }}';
-    
-        // Append the CSRF token input to the form
-        form.appendChild(csrfTokenInput);
-    
-        // Append the form to the document body
-        document.body.appendChild(form);
-    
-        // Submit the form
-        form.submit();
-    }
+    // Emoji picker
+    const emojiButton = document.getElementById('emoji-button');
+    const emojiPicker = document.getElementById('emoji-picker');
 
-    //emoji picker
-    document.getElementById('emoji-button').onclick = function() {
-        const emojiPicker = document.getElementById('emoji-picker');
+    emojiButton.addEventListener('click', () => {
         emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
-    };
+    });
 
-    document.querySelectorAll('.emoji').forEach(function(emoji) {
-        emoji.onclick = function() {
-            const emojiValue = emoji.getAttribute('data-emoji');
-            const chatInput = document.getElementById('message-input');
-            chatInput.value += emojiValue;  // Append the selected emoji to the input
-            chatInput.focus();  // Refocus on the input field
-            //document.getElementById('emoji-picker').style.display = 'none';  // Hide the picker after selection
-        };
+    // Close the emoji picker when typing
+    messageInput.addEventListener('input', () => {
+        emojiPicker.style.display = 'none';
+    });
+
+    document.querySelectorAll('.emoji').forEach(emoji => {
+        emoji.addEventListener('click', () => {
+            messageInput.value += emoji.getAttribute('data-emoji');
+            messageInput.focus(); // Keep focus on the input
+        });
     });
 
     // Close the emoji picker if clicking outside of it
-    document.addEventListener('click', function(event) {
-        const emojiPicker = document.getElementById('emoji-picker');
-        const emojiButton = document.getElementById('emoji-button');
+    document.addEventListener('click', (event) => {
         if (!emojiPicker.contains(event.target) && event.target !== emojiButton) {
             emojiPicker.style.display = 'none';
         }
     });
+
+    function logout() {
+        if (confirm("Are you sure you want to log out?")) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{% url "users:logout" %}';
+            const csrfTokenInput = document.createElement('input');
+            csrfTokenInput.type = 'hidden';
+            csrfTokenInput.name = 'csrfmiddlewaretoken';
+            csrfTokenInput.value = '{{ csrf_token }}';
+            form.appendChild(csrfTokenInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
 </script>
 
 {% endblock %}
