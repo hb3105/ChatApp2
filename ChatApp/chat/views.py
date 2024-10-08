@@ -68,16 +68,20 @@ def remove_user_from_room(request, room_name, username):
 
 def invite_to_room(request, room_name):
     room = get_object_or_404(Room, name=room_name)
-
+  
     if request.method == 'POST':
         username = request.POST.get('username')
-        user_to_invite = get_object_or_404(User, username=username)
+        user_to_invite = User.objects.filter(username=username).first()
 
-        if is_pro_user(request.user):
-            room.users.add(user_to_invite)
-            messages.success(request, f"{username.capitalize()} has been invited to {room_name}.")
+        if user_to_invite:
+            if request.user.user_type == 'pro':
+                room = Room.objects.get(name=room_name)
+                room.users.add(user_to_invite)
+                messages.success(request, f"{username.capitalize()} has been invited to {room_name}.")
+            else:
+                messages.error(request, "Only PRO users can invite others.")
         else:
-            messages.error(request, "Only PRO users can invite others.")
+            messages.error(request, f"User '{username.capitalize()}' does not exist.")
 
     return redirect(reverse('chat:room') + f'?room_name={room_name}')
 
