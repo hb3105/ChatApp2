@@ -44,12 +44,7 @@
 <script>
     const messageLog = document.querySelector('#message-log'); // Declare messageLog globally
     const messageInput = document.querySelector('#message-input');
-    const receiverSelect = document.querySelector('#receiver-select');
-        
     let currentReceiver = '{{ current_receiver.username }}';
-
-    // WebSocket connection
-    const receiver = '{{ current_receiver.username }}'; // Make sure this is set correctly in your template
 
     let chatSocket = null;  // Store the WebSocket connection reference
     
@@ -122,8 +117,7 @@
     }
 
     function scrollToBottom() {
-        const chatLog = document.getElementById('message-log');
-        chatLog.scrollTop = chatLog.scrollHeight;
+        messageLog.scrollTop = chatLog.scrollHeight;
     }
 
     function handleDeleteMessage(messageId) {
