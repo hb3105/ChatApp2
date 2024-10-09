@@ -24,7 +24,7 @@
                     {% if user.user_type == 'pro' and participant != request.user %}
                         <form action="{% url 'chat:remove_user_from_room' room_name participant.username %}" method="POST" style="display:inline;" onsubmit="return confirmDelete();">
                             {% csrf_token %}
-                            <input type="submit" value="X" style="color: red; background: none; border: none; cursor: pointer; font-size: 12px;">
+                            <input type="submit" value="X" style="color: red; background: none; border: none; cursor: pointer; font-size: 0.5em;">
                         </form>
                     {% endif %}
                 </li>
@@ -74,7 +74,7 @@
     <!-- Message Template -->
     <div id="message-template" style="display: none;">
         <span class="timestamp" style="font-style: italic; color: grey; font-size: 0.8em;"></span>  <b class="username"></b> : <span class="message-content"></span>
-        <button class="delete-message-button" style="color: red; background: none; border: none; cursor: pointer;">X</button>
+        <button class="delete-message-button" style="color: red; background: none; border: none; cursor: pointer; font-size: 0.5em;">X</button>
     </div>
 
     <script>
@@ -178,19 +178,6 @@
                 }));
                 chatInput.value = '';
             }
-        });
-    
-        const participantList = document.getElementById('participant-list');
-        participantList.addEventListener('mouseover', (event) => {
-            const liElement = event.target.closest('li');
-            const form = liElement.querySelector('.remove-user-form');
-            if (form) form.style.display = 'block';
-        });
-    
-        participantList.addEventListener('mouseout', (event) => {
-            const liElement = event.target.closest('li');
-            const form = liElement.querySelector('.remove-user-form');
-            if (form) form.style.display = 'none';
         });
     
         // Emoji picker

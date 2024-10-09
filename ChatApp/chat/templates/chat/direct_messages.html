@@ -31,7 +31,7 @@
         <!-- Message Template -->
         <div id="message-template" style="display: none;">
             <span class="timestamp" style="font-style: italic; color: grey; font-size: 0.8em;"></span>  <b class="username"></b> : <span class="message-content"></span>
-            <button class="delete-message-button" style="color: red; background: none; border: none; cursor: pointer;">X</button>
+            <button class="delete-message-button" style="color: red; background: none; border: none; cursor: pointer; font-size: 0.5em;">X</button>
         </div>
 
         <a href="#" onclick="logout()">Logout</a>&nbsp;
@@ -117,7 +117,7 @@
     }
 
     function scrollToBottom() {
-        messageLog.scrollTop = chatLog.scrollHeight;
+        messageLog.scrollTop = messageLog.scrollHeight;
     }
 
     function handleDeleteMessage(messageId) {
