@@ -60,10 +60,10 @@
     function handleSocketMessage(e) {
         const data = JSON.parse(e.data);
         if (data.messages) {
-            console.log(data.messages)
+            //console.log(data.messages)
             updateChatLog(data.messages);
         } else {
-            console.log(data)
+            //console.log(data)
             appendMessage(data);
         }
     }
