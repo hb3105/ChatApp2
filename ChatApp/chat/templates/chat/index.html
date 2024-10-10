@@ -48,28 +48,29 @@
     <a href="{% url 'users:dashboard' %}">Dashboard</a>
 
     <script>
-        const roomInput = document.querySelector('#room-name-input');
-        const submitButton = document.querySelector('#room-name-submit');
-        const errorMessage = document.querySelector('#room-name-error');
+        {% if user.user_type == 'pro' %}
+            const roomInput = document.querySelector('#room-name-input');
+            const submitButton = document.querySelector('#room-name-submit');
+            const errorMessage = document.querySelector('#room-name-error');
 
-        roomInput.focus();
+            roomInput.focus();
 
-        roomInput.oninput = function() {
-            const roomName = roomInput.value.trim();
-            submitButton.disabled = roomName === '';
-        };
+            roomInput.oninput = function() {
+                const roomName = roomInput.value.trim();
+                submitButton.disabled = roomName === '';
+            };
 
-        function validateRoomName() {
-            const roomName = roomInput.value.trim();
-            if (!roomName) {
-                errorMessage.textContent = "Room name cannot be empty.";
-                errorMessage.style.display = "block";
-                return false;
+            function validateRoomName() {
+                const roomName = roomInput.value.trim();
+                if (!roomName) {
+                    errorMessage.textContent = "Room name cannot be empty.";
+                    errorMessage.style.display = "block";
+                    return false;
+                }
+                // Add additional validation logic here (e.g., check for existing room)
+                return true;
             }
-            // Add additional validation logic here (e.g., check for existing room)
-            return true;
-        }
-
+        {% endif %}
         function logout() {
             if (confirm("Are you sure you want to log out?")) {
                 const form = document.createElement('form');
