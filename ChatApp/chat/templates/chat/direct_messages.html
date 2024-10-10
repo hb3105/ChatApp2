@@ -47,6 +47,12 @@
     let currentReceiver = '{{ current_receiver.username }}';
 
     let chatSocket = null;  // Store the WebSocket connection reference
+
+    window.addEventListener('beforeunload', () => {
+        if (chatSocket) {
+            chatSocket.close();
+        }
+    });
     
     function connectToWebSocket() {
         if(!chatSocket) {
@@ -56,6 +62,26 @@
             chatSocket.onclose = handleSocketClose;
         }
     }
+
+    function handleSocketClose(event) {
+        if (event.code !== 1000) {  // 1000 indicates a normal closure
+            console.error('Chat socket closed unexpectedly. Reconnecting...');
+            chatSocket = null;
+            setTimeout(connectToWebSocket, 2000);
+        }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            // Pause WebSocket or other activities
+            if (chatSocket) {
+                chatSocket.close();
+            }
+        } else {
+            // Resume WebSocket or other activities
+            connectToWebSocket();
+        }
+    });
 
     function handleSocketMessage(e) {
         const data = JSON.parse(e.data);
@@ -92,12 +118,6 @@
         messageLog.appendChild(messageTemplate);
         scrollToBottom();
         showNotification(username, message);
-    }
-
-    function handleSocketClose() {
-        console.error('Chat socket closed. Reconnecting...');
-        chatSocket = null;  // Clear the reference
-        setTimeout(connectToWebSocket, 2000); // Reconnect after 2 seconds
     }
 
     function showNotification(username, message) {
